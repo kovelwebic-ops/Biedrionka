@@ -130,17 +130,14 @@ function monthCalc(ym){
   const rows = [...map.values()].sort((a,b)=>a.dept.localeCompare(b.dept));
   let pay = 0;
   for(const r of rows){
-    const rate = rateOf(r.dept);
+    /* Поріг за відсотком відділу, далі просто картони × ставка цього порогу.
+       Усе до 115% рахується за ставкою 100%. */
     r.pct = r.norm>0 ? r.qty/r.norm*100 : 0;
     r.ti = tierIndex(r.pct);
-    r.rate = rate[r.ti];
-    r.earned = r.qty*r.rate;
-    r.guar = r.norm*rate[0];          /* не менше, ніж за 100% норми */
-    r.onGuarantee = r.guar > r.earned;
-    r.pay = Math.max(r.earned, r.guar);
+    r.rate = rateOf(r.dept)[r.ti];
+    r.pay = r.qty * r.rate;
     r.tempo = r.workMs>0 ? r.qty/(r.workMs/3600000) : 0;
-    r.formula = r.onGuarantee ? "гарантія 100%"
-      : "ставка "+TIERS[r.ti]+"% · "+nf(r.qty)+" × "+dec(r.rate,4);
+    r.formula = "ставка "+TIERS[r.ti]+"% · "+nf(r.qty)+" × "+dec(r.rate,4);
     pay += r.pay;
   }
   const pen = S.penalties.filter(p=>p.date.slice(0,7)===ym).sort((a,b)=>a.date.localeCompare(b.date));
