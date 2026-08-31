@@ -721,5 +721,27 @@ setInterval(tick, 1000);
 setInterval(()=>{ if(activeShift()) save(); }, 30000);
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && !ui.sheet) render(); });
 
+/* ============ ширина екрана ============
+   Якщо в браузері увімкнено «Версія для ПК», сторінка малюється у ~980px
+   і на телефоні стискається до нечитабельного. Тоді компенсуємо масштабом. */
+let zoomApplied = 1;
+function fitViewport(){
+  try{
+    const de = document.documentElement;
+    const sw = window.screen && window.screen.width;
+    if(!sw) return;
+    const real = de.clientWidth * zoomApplied;   /* ширина без нашого масштабу */
+    const r = real / sw;
+    const z = r > 1.5 ? Math.round(r*100)/100 : 1;
+    if(z !== zoomApplied){
+      zoomApplied = z;
+      de.style.zoom = z===1 ? "" : z;
+    }
+  }catch(e){}
+}
+window.addEventListener("resize", fitViewport);
+window.addEventListener("orientationchange", fitViewport);
+
+fitViewport();
 applyTheme();
 render();
