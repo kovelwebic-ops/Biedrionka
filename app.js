@@ -379,8 +379,6 @@ function viewHist(){
 function dayRow(s){
   const c = calc(s);
   const d = new Date(s.date+"T12:00:00");
-  const meta = c.rows.map(r=>r.dept).join(" ")+" · "+dur(c.workMs)
-    + (c.norm>0 ? ` · <span style="color:${tone(c.pct)}">${pctNum(c.pct)}%</span>` : "");
   return `<div class="srow">
     <button data-act="openday" data-v="${s.id}">
       <span class="s-left">
@@ -389,7 +387,7 @@ function dayRow(s){
       </span>
       <span class="s-right">
         <span class="s-qty">${nf(c.qty)}</span>
-        <span class="s-meta">${meta}</span>
+        <span class="s-meta">картонів</span>
       </span>
     </button>
     ${ui.openDay===s.id?dayDetail(s,c):""}
