@@ -220,11 +220,13 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .rhead span+span{text-align:center}
 .rrow{margin-top:8px}
 .rt{font:600 12px/1 var(--m);color:var(--dim)}
-.rrow input{width:100%;padding:12px 8px;border-radius:10px;background:var(--sur2);
-  border:1px solid var(--line);color:var(--txt);font:600 15px/1 var(--m);
-  font-variant-numeric:tabular-nums;text-align:center;-moz-appearance:textfield}
-.rfix{padding:12px 8px;text-align:center;font:600 15px/1 var(--m);
-  color:var(--dim);border:1px solid transparent}
+/* поле й похідне значення мають однакову коробку — висоту задаємо явно,
+   бо інпут рахує міжрядковий інтервал інакше, ніж звичайний елемент */
+.rrow input,.rfix{min-height:46px;padding:0 8px;border-radius:10px;
+  background:var(--sur2);border:1px solid var(--line);
+  font:600 15px/1 var(--m);font-variant-numeric:tabular-nums;text-align:center}
+.rrow input{width:100%;color:var(--txt);-moz-appearance:textfield}
+.rfix{display:flex;align-items:center;justify-content:center;color:var(--dim)}
 .bkbtns{display:flex;flex-direction:column;gap:10px;margin-top:14px}
 .bkbtn{width:100%;padding:17px;border-radius:12px;border:1px solid var(--line);
   text-align:left;font:600 15px/1 var(--f)}
