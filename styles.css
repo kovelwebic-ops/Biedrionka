@@ -90,10 +90,6 @@ input,textarea{font-family:inherit}
 .chip.on{background:var(--acc);border-color:var(--acc)}
 .chip.on .id,.chip.on .sub{color:var(--ink)}
 
-.today{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:28px}
-.today .lab{font:600 10px/1 var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim2)}
-.today .val{margin-top:8px;font:600 22px/1 var(--m);font-variant-numeric:tabular-nums}
-
 /* ========== нижня панель ========== */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;max-width:560px;margin:0 auto;
   background:var(--bg);border-top:1px solid var(--line)}

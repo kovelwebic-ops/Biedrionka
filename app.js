@@ -20,7 +20,7 @@ const DEF = () => ({
 });
 
 let S = load();
-let ui = {tab:"shift", openDay:null, openDept:null, month:null, sheet:null, pad:"", ctx:null};
+let ui = {tab:"shift", openDay:null, openDepts:[], month:null, sheet:null, pad:"", ctx:null};
 
 function load(){
   try{
@@ -207,9 +207,7 @@ function finishShift(startStr, endStr){
   sh.end = e;
   for(const leg of sh.legs){ if(!leg.end) leg.end = e; if(leg.start<sh.start) leg.start = sh.start; }
   for(const b of sh.blocks) if(b.end==null) b.end = e;
-  save(); closeSheet();
-  ui.tab = "hist"; ui.openDay = sh.id;
-  render(); window.scrollTo(0,0);
+  save(); closeSheet(); render();
 }
 function onDate(refTs, str){
   const m = /^(\d{1,2}):(\d{2})$/.exec(str||""); if(!m) return null;
@@ -300,19 +298,13 @@ function viewShift(){
 }
 
 function idleShift(){
-  const today = S.shifts.filter(s=>s.date===dkey(now()) && s.end);
-  const sum = today.reduce((a,s)=>{const c=calc(s); a.qty+=c.qty; a.work+=c.workMs; return a;},{qty:0,work:0});
   return `
   <div class="h1">Нова зміна</div>
   <div class="grid2">
     ${DEPTS.map(d=>`<button class="chip ${S.settings.lastDept===d?"on":""}" data-act="pickdept" data-v="${d}">
       <div class="id">${d}</div><div class="sub">${normOf(d)}/год</div>
     </button>`).join("")}
-  </div>
-  ${today.length ? `<div class="today">
-    <div><div class="lab">Сьогодні</div><div class="val num">${nf(sum.qty)} карт.</div></div>
-    <div><div class="lab">Робота</div><div class="val num">${dur(sum.work)}</div></div>
-  </div>` : ""}`;
+  </div>`;
 }
 
 /* ---------- нижня панель ---------- */
@@ -431,7 +423,7 @@ function viewMonth(){
         </span>
         <span class="dc-money num">${money(r.pay)}</span>
       </button>
-      ${ui.openDept===r.dept ? `<div class="dc-more">
+      ${ui.openDepts.includes(r.dept) ? `<div class="dc-more">
         <div class="stats3">
           <div><div class="lab">Темп</div><div class="val num">${Math.round(r.tempo)}<i>/год</i></div></div>
           <div><div class="lab">Час</div><div class="val num">${dur(r.workMs)}</div></div>
@@ -609,7 +601,7 @@ document.addEventListener("click", ev => {
 
   switch(a){
     case "theme": S.settings.theme=v; save(); applyTheme(); render(); break;
-    case "tab": ui.tab=v; ui.openDay=null; ui.openDept=null; render(); window.scrollTo(0,0); break;
+    case "tab": ui.tab=v; ui.openDay=null; ui.openDepts=[]; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;
     case "delorder": delOrder(v); break;
@@ -641,7 +633,7 @@ document.addEventListener("click", ev => {
     case "padok": { const n=parseInt(ui.pad||"0",10); closeSheet(); addOrder(n); break; }
 
     case "openday": ui.openDay = ui.openDay===v ? null : v; render(); break;
-    case "opendept": ui.openDept = ui.openDept===v ? null : v; render(); break;
+    case "opendept": ui.openDepts = ui.openDepts.includes(v) ? ui.openDepts.filter(x=>x!==v) : ui.openDepts.concat(v); render(); break;
     case "ask": { const [type,id]=v.split(":"); ui.ctx={type,id}; openSheet("confirm"); break; }
     case "doconfirm": {
       const c = ui.ctx || {};
@@ -650,7 +642,7 @@ document.addEventListener("click", ev => {
       ui.ctx=null; ui.openDay=null; save(); applyTheme(); closeSheet(); render();
       break;
     }
-    case "mon": ui.month=v; ui.openDept=null; render(); break;
+    case "mon": ui.month=v; ui.openDepts=[]; render(); break;
 
     case "doblend": {
       const d=document.getElementById("fDate").value;
