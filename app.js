@@ -57,6 +57,7 @@ function money(v){
   return (v<0?"−":"")+group(s[0])+","+s[1]+" zł";
 }
 const dec = (n,d) => Number(n).toFixed(d).replace(".",",");
+const normFmt = v => Number.isInteger(v) ? String(v) : dec(v,2);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const dLabel = ds => ds.slice(8,10)+"."+ds.slice(5,7);
 
@@ -506,15 +507,14 @@ function viewSettings(){
       const r = S.rates[d];
       return `<div class="rcard">
         <div class="id">${d}</div>
-        <div class="rgrid">
-          ${[["Норма/год","norm",0,r.norm[0]],
-             ["100%",t,0,dec(r[t][0],4)],
-             ["115%",t,1,dec(r[t][1],4)],
-             ["130%",t,2,dec(r[t][2],4)]].map(([lab,f,i,val])=>`
-            <label><div class="lab">${lab}</div>
-              <input inputmode="decimal" data-rate="${d}" data-f="${f}" data-i="${i}"
-                value="${val}"></label>`).join("")}
-        </div>
+        <div class="rhead"><span>Поріг</span><span>Карт/год</span><span>zł/карт</span></div>
+        ${TIERS.map((tier,i)=>`<div class="rrow">
+          <span class="rt">${tier}%</span>
+          ${i===0
+            ? `<input inputmode="decimal" data-rate="${d}" data-f="norm" data-i="0" value="${normFmt(r.norm[0])}">`
+            : `<span class="rfix num">${normFmt(r.norm[i])}</span>`}
+          <input inputmode="decimal" data-rate="${d}" data-f="${t}" data-i="${i}" value="${dec(r[t][i],4)}">
+        </div>`).join("")}
       </div>`;
     }).join("")}
   </div>
@@ -693,9 +693,16 @@ document.addEventListener("change", ev => {
   if(!el) return;
   const val = parseFloat(String(el.value).replace(",","."));
   const r = S.rates[el.dataset.rate], f = el.dataset.f, i = +el.dataset.i;
-  if(!isFinite(val) || val<=0){ el.value = f==="norm" ? r.norm[i] : dec(r[f][i],4); toast("Потрібне число більше нуля"); return; }
+  if(!isFinite(val) || val<=0){
+    el.value = f==="norm" ? normFmt(r.norm[i]) : dec(r[f][i],4);
+    toast("Потрібне число більше нуля"); return;
+  }
   r[f][i] = val;
-  if(f==="norm"){ r.norm[1] = +(val*1.15).toFixed(2); r.norm[2] = +(val*1.30).toFixed(2); }
+  if(f==="norm"){                    /* 115% і 130% похідні від базової норми */
+    r.norm[1] = +(val*1.15).toFixed(2);
+    r.norm[2] = +(val*1.30).toFixed(2);
+    save(); render(); return;        /* перемалювати, щоб оновились похідні */
+  }
   save();
 });
 

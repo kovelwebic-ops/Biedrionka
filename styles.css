@@ -214,12 +214,17 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .rcards{display:flex;flex-direction:column;gap:12px;margin-top:14px}
 .rcard{background:var(--sur);border:1px solid var(--line);border-radius:16px;padding:16px}
 .rcard .id{font:700 20px/1 var(--m)}
-.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.rgrid label{display:block}
-.rgrid .lab{font:600 10px/1 var(--m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim2)}
-.rgrid input{width:100%;margin-top:8px;padding:12px;border-radius:10px;background:var(--sur2);
-  border:1px solid var(--line);color:var(--txt);font:600 16px/1 var(--m);
-  font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.rhead,.rrow{display:grid;grid-template-columns:46px 1fr 1fr;gap:8px;align-items:center}
+.rhead{margin-top:14px;padding:0 2px}
+.rhead span{font:600 10px/1 var(--m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim2)}
+.rhead span+span{text-align:center}
+.rrow{margin-top:8px}
+.rt{font:600 12px/1 var(--m);color:var(--dim)}
+.rrow input{width:100%;padding:12px 8px;border-radius:10px;background:var(--sur2);
+  border:1px solid var(--line);color:var(--txt);font:600 15px/1 var(--m);
+  font-variant-numeric:tabular-nums;text-align:center;-moz-appearance:textfield}
+.rfix{padding:12px 8px;text-align:center;font:600 15px/1 var(--m);
+  color:var(--dim);border:1px solid transparent}
 .bkbtns{display:flex;flex-direction:column;gap:10px;margin-top:14px}
 .bkbtn{width:100%;padding:17px;border-radius:12px;border:1px solid var(--line);
   text-align:left;font:600 15px/1 var(--f)}
