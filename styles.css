@@ -277,3 +277,6 @@ input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px;bord
   background:var(--sur2);color:var(--txt);border:1px solid var(--line);
   padding:11px 16px;border-radius:11px;font:600 13.5px/1 var(--f);
   animation:fade .15s;pointer-events:none;white-space:nowrap}
+
+/* власні іконки замість емодзі-символів */
+.gi{width:11px;height:11px;fill:currentColor;vertical-align:-1px;margin-right:7px}

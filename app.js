@@ -329,6 +329,10 @@ function idleShift(){
 }
 
 /* ---------- нижня панель ---------- */
+/* Свої іконки, бо ⏸ і ▶ на Android малюються кольоровими емодзі. */
+const I_PAUSE = '<svg class="gi" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx=".8"/><rect x="7" y="1.5" width="3" height="9" rx=".8"/></svg>';
+const I_PLAY  = '<svg class="gi" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.6 10.4 6 3 10.4z"/></svg>';
+
 function dockHtml(){
   const sh = activeShift();
   let actions = "";
@@ -344,7 +348,7 @@ function dockHtml(){
           ${blocked?"Продовжити роботу":"+ Замовлення"}</button>
         <div class="subrow">
           <button class="subbtn" data-act="sheet" data-v="dept">Відділ</button>
-          <button class="subbtn" data-act="block">${blocked?"▶ Продовжити":"⏸ Блокування"}</button>
+          <button class="subbtn" data-act="block">${blocked?I_PLAY+"Продовжити":I_PAUSE+"Блокування"}</button>
           <button class="subbtn" data-act="sheet" data-v="finish">Завершити</button>
         </div>
       </div>`;
