@@ -126,7 +126,8 @@ input,textarea{font-family:inherit}
 .mgroup-head b{font-weight:600;color:var(--txt)}
 .srow{border-bottom:1px solid var(--line)}
 .srow>button{width:100%;display:flex;align-items:center;gap:12px;padding:15px 2px;text-align:left}
-.s-left{width:74px}
+.s-left{width:74px;flex:none}
+.s-dow,.s-date,.s-qty,.s-meta{display:block}
 .s-dow{font:600 14px/1 var(--f)}
 .s-date{margin-top:5px;font:400 12px/1 var(--m);color:var(--dim2)}
 .s-right{flex:1;text-align:right;min-width:0}
