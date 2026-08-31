@@ -152,20 +152,22 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .monthnav button{width:44px;height:44px;font:400 20px/1 var(--f);color:var(--dim)}
 .monthnav .title{font:700 20px/1 var(--f);letter-spacing:-.01em}
 .stats3{display:flex;gap:8px}
-.stats3>div{flex:1}
+.stats3>div{flex:1;text-align:center}
 .stats3 .lab{font:600 10px/1 var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim2)}
 .stats3 .val{margin-top:8px;font:700 24px/1 var(--m);font-variant-numeric:tabular-nums}
 .stats3 .val.off{color:var(--dim)}
+.stats3 .val i{font-style:normal;font-weight:600;font-size:13px;color:var(--dim2)}
 
 .dcards{display:flex;flex-direction:column;gap:14px;margin-top:26px}
 .dcard{background:var(--sur);border:1px solid var(--line);border-radius:16px;padding:16px}
-.dc-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.dc-head{width:100%;display:flex;justify-content:space-between;align-items:baseline;
+  gap:10px;text-align:left}
 .dc-left{display:flex;align-items:baseline;gap:10px;min-width:0}
 .dc-id{font:700 22px/1 var(--m);letter-spacing:-.01em}
 .dc-qty{font:600 17px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
 .dc-money{font:700 19px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap}
-.dc-sub{margin-top:10px;font:500 12.5px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
-.dc-formula{margin-top:7px;text-align:right;font:400 11.5px/1 var(--m);color:var(--dim2)}
+.dc-more{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);animation:fade .18s}
+.dc-formula{margin-top:12px;text-align:center;font:400 11.5px/1 var(--m);color:var(--dim2)}
 .dc-bar{position:relative;height:10px;margin-top:16px;border-radius:3px;
   background:var(--sur2);overflow:hidden}
 .dc-bar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px;transition:width .3s}

@@ -20,7 +20,7 @@ const DEF = () => ({
 });
 
 let S = load();
-let ui = {tab:"shift", openDay:null, month:null, sheet:null, pad:"", ctx:null};
+let ui = {tab:"shift", openDay:null, openDept:null, month:null, sheet:null, pad:"", ctx:null};
 
 function load(){
   try{
@@ -433,18 +433,23 @@ function viewMonth(){
   <div class="dcards">
     ${M.rows.length ? M.rows.map(r=>`
     <div class="dcard">
-      <div class="dc-head">
-        <div class="dc-left">
-          <div class="dc-id">${r.dept}</div>
-          <div class="dc-qty num">${nf(r.qty)} карт.</div>
+      <button class="dc-head" data-act="opendept" data-v="${r.dept}">
+        <span class="dc-left">
+          <span class="dc-id">${r.dept}</span>
+          <span class="dc-qty num">${nf(r.qty)} карт.</span>
+        </span>
+        <span class="dc-money num">${money(r.pay)}</span>
+      </button>
+      ${ui.openDept===r.dept ? `<div class="dc-more">
+        <div class="stats3">
+          <div><div class="lab">Темп</div><div class="val num">${Math.round(r.tempo)}<i>/год</i></div></div>
+          <div><div class="lab">Час</div><div class="val num">${dur(r.workMs)}</div></div>
+          <div><div class="lab">Норма</div><div class="val num" style="color:${tone(r.pct)}">${r.norm>0?pctNum(r.pct)+"%":"—"}</div></div>
         </div>
-        <div class="dc-money num">${money(r.pay)}</div>
-      </div>
-      <div class="dc-sub">${Math.round(r.tempo)}/год · ${dur(r.workMs)} ·
-        <span style="color:${tone(r.pct)}">${r.norm>0?pctNum(r.pct)+"%":"—"}</span></div>
-      <div class="dc-formula">${r.formula}</div>
-      <div class="dc-bar"><span style="width:${Math.min(100, r.norm>0?r.pct/150*100:0).toFixed(1)}%;background:${tone(r.pct)}"></span></div>
-      <div class="dc-marks">${marks.map(([at,l])=>`<span style="left:${at}%">${l}</span>`).join("")}</div>
+        <div class="dc-bar"><span style="width:${Math.min(100, r.norm>0?r.pct/150*100:0).toFixed(1)}%;background:${tone(r.pct)}"></span></div>
+        <div class="dc-marks">${marks.map(([at,l])=>`<span style="left:${at}%">${l}</span>`).join("")}</div>
+        <div class="dc-formula">${r.formula}</div>
+      </div>` : ""}
     </div>`).join("") : `<div class="blank">За цей місяць змін немає</div>`}
   </div>
 
@@ -608,7 +613,7 @@ document.addEventListener("click", ev => {
 
   switch(a){
     case "theme": toggleTheme(); break;
-    case "tab": ui.tab=v; ui.openDay=null; render(); window.scrollTo(0,0); break;
+    case "tab": ui.tab=v; ui.openDay=null; ui.openDept=null; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;
     case "delorder": delOrder(v); break;
@@ -640,6 +645,7 @@ document.addEventListener("click", ev => {
     case "padok": { const n=parseInt(ui.pad||"0",10); closeSheet(); addOrder(n); break; }
 
     case "openday": ui.openDay = ui.openDay===v ? null : v; render(); break;
+    case "opendept": ui.openDept = ui.openDept===v ? null : v; render(); break;
     case "ask": { const [type,id]=v.split(":"); ui.ctx={type,id}; openSheet("confirm"); break; }
     case "doconfirm": {
       const c = ui.ctx || {};
@@ -648,7 +654,7 @@ document.addEventListener("click", ev => {
       ui.ctx=null; ui.openDay=null; save(); applyTheme(); closeSheet(); render();
       break;
     }
-    case "mon": ui.month=v; render(); break;
+    case "mon": ui.month=v; ui.openDept=null; render(); break;
 
     case "doblend": {
       const d=document.getElementById("fDate").value;
