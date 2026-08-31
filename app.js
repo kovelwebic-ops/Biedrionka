@@ -232,25 +232,14 @@ function timeEnd(startTs, str){
 function applyTheme(){
   try{ document.documentElement.dataset.theme = S.settings.theme; }catch(e){}
 }
-function toggleTheme(){
-  S.settings.theme = S.settings.theme==="dark" ? "light" : "dark";
-  save(); applyTheme(); render();
-}
 
 /* ============ рендер ============ */
 function render(){
   document.getElementById("app").innerHTML =
-    topHtml() + `<div class="page" id="page">` + pageHtml() + `</div>`;
+    `<div class="page" id="page">` + pageHtml() + `</div>`;
   document.getElementById("dockHost").innerHTML = dockHtml();
   const page = document.getElementById("page"), dock = document.querySelector(".dock");
   requestAnimationFrame(()=>{ page.style.paddingBottom = (dock.offsetHeight + 26) + "px"; });
-}
-
-function topHtml(){
-  return `<div class="top">
-    <div class="brand">Мій Акорд</div>
-    <button class="themebtn" data-act="theme">${S.settings.theme==="dark"?"Темна":"Світла"}</button>
-  </div>`;
 }
 
 function pageHtml(){
@@ -505,6 +494,12 @@ function viewSettings(){
     <button class="segbtn ${t==="b"?"on":""}" data-act="ratetype" data-v="b">Brutto</button>
   </div>
 
+  <div class="sect-lab" style="margin-top:30px">Тема</div>
+  <div class="seg">
+    <button class="segbtn ${S.settings.theme==="dark"?"on":""}" data-act="theme" data-v="dark">Темна</button>
+    <button class="segbtn ${S.settings.theme==="light"?"on":""}" data-act="theme" data-v="light">Світла</button>
+  </div>
+
   <div class="sect-lab" style="margin-top:30px">Норми та ставки</div>
   <div class="rcards">
     ${DEPTS.map(d=>{
@@ -616,7 +611,7 @@ document.addEventListener("click", ev => {
   if(a==="scrim" && ev.target!==el) return;
 
   switch(a){
-    case "theme": toggleTheme(); break;
+    case "theme": S.settings.theme=v; save(); applyTheme(); render(); break;
     case "tab": ui.tab=v; ui.openDay=null; ui.openDept=null; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;

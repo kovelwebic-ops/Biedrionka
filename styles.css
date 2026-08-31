@@ -38,11 +38,7 @@ input,textarea{font-family:inherit}
   background:var(--bg);color:var(--txt);font-family:var(--f);
   position:relative;overflow-x:clip;
 }
-.top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px}
-.brand{font:600 12px/1 var(--m);letter-spacing:.16em;text-transform:uppercase;color:var(--dim2)}
-.themebtn{font:600 11px/1 var(--m);letter-spacing:.1em;color:var(--dim);
-  padding:8px 10px;border:1px solid var(--line);border-radius:8px}
-.page{padding:6px 18px 232px}
+.page{padding:calc(18px + env(safe-area-inset-top)) 18px 232px}
 .h1{font:700 30px/1.1 var(--f);letter-spacing:-.02em;margin:10px 0 22px}
 
 /* ========== зміна ========== */
@@ -111,9 +107,11 @@ input,textarea{font-family:inherit}
 .subbtn{flex:1;min-height:50px;border-radius:12px;border:1px solid var(--line);
   font:600 13.5px/1 var(--f);color:var(--dim)}
 .subbtn:active{background:var(--sur2)}
-.tabs{display:flex;padding:4px 8px calc(8px + env(safe-area-inset-bottom))}
-.tab{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:6px;font:600 12.5px/1 var(--f);color:var(--dim2)}
+.tabs{display:flex;justify-content:space-between;
+  padding:4px 18px calc(8px + env(safe-area-inset-bottom))}
+.tab{flex:0 1 auto;min-height:52px;padding:0 2px;white-space:nowrap;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;font:600 12px/1 var(--f);color:var(--dim2)}
 .tab i{width:16px;height:2px;border-radius:2px;background:transparent}
 .tab[aria-current="true"]{color:var(--txt)}
 .tab[aria-current="true"] i{background:var(--acc)}
