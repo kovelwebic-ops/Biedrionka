@@ -511,7 +511,6 @@ function viewSettings(){
   <div class="sect-lab" style="margin-top:30px">Резервна копія</div>
   <div class="bkbtns">
     <button class="bkbtn" data-act="export">Зберегти файл</button>
-    <button class="bkbtn" data-act="copy">Копіювати</button>
     <button class="bkbtn" data-act="sheet" data-v="restore">Відновити з копії</button>
     <button class="bkbtn neg" data-act="ask" data-v="wipe:">Стерти всі дані</button>
   </div>`;
@@ -661,8 +660,6 @@ document.addEventListener("click", ev => {
     case "delpen": S.penalties=S.penalties.filter(p=>p.id!==v); save(); render(); break;
 
     case "ratetype": S.settings.rate=v; save(); render(); break;
-    case "copy": navigator.clipboard.writeText(JSON.stringify(S))
-      .then(()=>toast("Скопійовано"),()=>toast("Не вдалось")); break;
     case "export": doExport(); break;
     case "doimport": {
       try{
@@ -698,12 +695,22 @@ document.addEventListener("change", ev => {
 async function doExport(){
   const data = JSON.stringify(S, null, 2);
   const filename = "akkord-"+dkey(now())+".json";
+  /* Звичайне завантаження файла — працює в браузері й на телефоні. */
+  try{
+    const url = URL.createObjectURL(new Blob([data], {type:"application/json"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast(filename);
+    return;
+  }catch(e){}
+  /* Усередині перегляду артефакта claude.ai завантаження блокується — там свій шлях. */
   try{
     const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
     if(dl){ await dl.save({filename, data}); toast("Збережено"); return; }
   }catch(e){}
-  try{ await navigator.clipboard.writeText(data); toast("Скопійовано в буфер"); }
-  catch(e){ toast("Не вдалось зберегти"); }
+  toast("Не вдалось зберегти");
 }
 
 /* ============ годинники ============
