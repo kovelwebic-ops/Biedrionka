@@ -55,7 +55,9 @@ function dur(ms){ if(!(ms>0)) ms=0; const m=Math.round(ms/60000); return Math.fl
 const MONTHS=["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
 const WD=["Нд","Пн","Вт","Ср","Чт","Пт","Сб"];
 const group = s => String(s).replace(/\B(?=(\d{3})+(?!\d))/g," ");
-const nf = n => group(Math.round(n));
+/* Розділювач тисяч лише з п'яти цифр: "1242" читається і без нього,
+   а от місячні "26 500" — вже ні. */
+const nf = n => { const v = Math.round(n); return Math.abs(v)>=10000 ? group(v) : String(v); };
 function money(v){
   const s = Math.abs(v).toFixed(2).split(".");
   return (v<0?"−":"")+group(s[0])+","+s[1]+" zł";
@@ -295,8 +297,7 @@ function viewShift(){
     </div>
     <div class="bigrow ${c.rows.length>1?"split":""}">
       <div class="bigcol">
-        <!-- без розділювача тисяч: на цьому кеглі пробіл читається як розрив -->
-        <div class="bignum" id="liveQty">${Math.round(c.qty)}</div>
+        <div class="bignum" id="liveQty">${nf(c.qty)}</div>
         <div class="bigcap">картонів за зміну</div>
       </div>
       ${c.rows.length>1 ? `<div class="brk">
