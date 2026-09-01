@@ -55,9 +55,9 @@ function dur(ms){ if(!(ms>0)) ms=0; const m=Math.round(ms/60000); return Math.fl
 const MONTHS=["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
 const WD=["Нд","Пн","Вт","Ср","Чт","Пт","Сб"];
 const group = s => String(s).replace(/\B(?=(\d{3})+(?!\d))/g," ");
-/* Розділювач тисяч лише з п'яти цифр: "1242" читається і без нього,
-   а от місячні "26 500" — вже ні. */
-const nf = n => { const v = Math.round(n); return Math.abs(v)>=10000 ? group(v) : String(v); };
+/* Картони без розділювача тисяч на будь-якій довжині: пробіл у "53 294"
+   читається як два числа поспіль. Групує лише money(). */
+const nf = n => String(Math.round(n));
 function money(v){
   const s = Math.abs(v).toFixed(2).split(".");
   return (v<0?"−":"")+group(s[0])+","+s[1]+" zł";
