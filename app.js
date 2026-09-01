@@ -193,19 +193,37 @@ function switchDept(dept){
   const sh = activeShift(); if(!sh) return;
   const leg = sh.legs[sh.legs.length-1];
   if(leg.dept===dept){ closeSheet(); return; }
-  if(leg.cartons.length===0 && sh.legs.length===1) leg.dept = dept;
-  else { const t = now(); leg.end = t; sh.legs.push({id:uid(), dept, start:t, end:null, cartons:[]}); }
+  /* Час завжди лишається на тому відділі, де він минув, навіть без замовлень:
+     поки шукаєш сканер і збираєшся, ти вже стоїш на своєму відділі. */
+  const t = now();
+  leg.end = t;
+  sh.legs.push({id:uid(), dept, start:t, end:null, cartons:[]});
   S.settings.lastDept = dept;
   save(); closeSheet(); render();
 }
 function finishShift(startStr, endStr){
   const sh = activeShift(); if(!sh) return;
-  if(startStr){ const ns = timeStart(sh.start, startStr); if(ns){ sh.start = ns; sh.date = dkey(ns); } }
+  if(startStr){
+    const ns = timeStart(sh.start, startStr);
+    if(ns){
+      sh.start = ns; sh.date = dkey(ns);
+      /* Зсунули початок назад — ці хвилини належать першому відділу зміни. */
+      sh.legs[0].start = Math.min(sh.legs[0].start, ns);
+      for(const b of sh.blocks) if(b.start<ns) b.start = ns;
+    }
+  }
   let e = now();
   if(endStr){ const ne = timeEnd(sh.start, endStr); if(ne) e = ne; }
   if(e < sh.start) e = sh.start;
   sh.end = e;
-  for(const leg of sh.legs){ if(!leg.end) leg.end = e; if(leg.start<sh.start) leg.start = sh.start; }
+  /* Відрізки не мають вилазити за межі зміни — інакше їхній час не зійдеться
+     з тривалістю (кінець зміни може виявитись раніший за останнє перекидання). */
+  for(const leg of sh.legs){
+    if(!leg.end) leg.end = e;
+    if(leg.start < sh.start) leg.start = sh.start;
+    if(leg.start > e) leg.start = e;
+    if(leg.end > e) leg.end = e;
+  }
   for(const b of sh.blocks) if(b.end==null) b.end = e;
   save(); closeSheet(); render();
 }
