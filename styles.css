@@ -53,12 +53,13 @@ input,textarea{font-family:inherit}
   background:var(--acc);color:var(--ink);font:700 11px/1 var(--m);
   letter-spacing:.1em;text-transform:uppercase}
 
-/* Число й розклад вирівняні низом одне до одного, без підігнаних відступів:
-   розмір числа плаває разом із шириною екрана, тож будь-яка стала тут
-   була б влучною рівно на одній ширині. Підпис винесено з ряду, щоб
-   низ ряду збігався з низом цифр. */
+/* Розклад сідає на лінію підпису: підпис лежить у тій самій колонці, що й
+   число, тож низ ряду проходить по ньому, і flex-end вирівнює розклад сам.
+   Ніяких підігнаних відступів — розмір числа плаває разом із шириною
+   екрана, тож будь-яка стала тут була б влучною рівно на одній ширині. */
 .bigrow{position:relative;display:flex;align-items:flex-end;gap:16px;margin-top:14px}
-.bignum{min-width:0;font:800 clamp(72px,22vw,124px)/.8 var(--f);letter-spacing:-.05em;
+.bigcol{min-width:0}
+.bignum{font:800 clamp(72px,22vw,124px)/.8 var(--f);letter-spacing:-.05em;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 /* коли поруч стоїть розклад по відділах, числу лишається менше місця */
 .bigrow.split .bignum{font-size:clamp(62px,20vw,112px)}

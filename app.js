@@ -294,12 +294,15 @@ function viewShift(){
       ${blocked?`<div class="pill">заблоковано</div>`:""}
     </div>
     <div class="bigrow ${c.rows.length>1?"split":""}">
-      <div class="bignum" id="liveQty">${nf(c.qty)}</div>
+      <div class="bigcol">
+        <!-- без розділювача тисяч: на цьому кеглі пробіл читається як розрив -->
+        <div class="bignum" id="liveQty">${Math.round(c.qty)}</div>
+        <div class="bigcap">картонів за зміну</div>
+      </div>
       ${c.rows.length>1 ? `<div class="brk">
         ${c.rows.map(r=>`<div><span>${r.dept}</span><b>${nf(r.qty)}</b></div>`).join("")}
       </div>` : ""}
     </div>
-    <div class="bigcap">картонів за зміну</div>
     <div class="tiles">
       <button class="tile" data-act="sheet" data-v="start">
         <div class="lab">Робота</div>
