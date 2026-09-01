@@ -53,13 +53,18 @@ input,textarea{font-family:inherit}
   background:var(--acc);color:var(--ink);font:700 11px/1 var(--m);
   letter-spacing:.1em;text-transform:uppercase}
 
+/* Число й розклад вирівняні низом одне до одного, без підігнаних відступів:
+   розмір числа плаває разом із шириною екрана, тож будь-яка стала тут
+   була б влучною рівно на одній ширині. Підпис винесено з ряду, щоб
+   низ ряду збігався з низом цифр. */
 .bigrow{position:relative;display:flex;align-items:flex-end;gap:16px;margin-top:14px}
-.bigcol{flex:1;min-width:0}
-.bignum{font:800 clamp(72px,22vw,124px)/.8 var(--f);letter-spacing:-.05em;
-  font-variant-numeric:tabular-nums}
+.bignum{min-width:0;font:800 clamp(72px,22vw,124px)/.8 var(--f);letter-spacing:-.05em;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+/* коли поруч стоїть розклад по відділах, числу лишається менше місця */
+.bigrow.split .bignum{font-size:clamp(62px,20vw,112px)}
 .bigcap{margin-top:14px;font:600 11px/1 var(--m);letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim)}
-.brk{display:flex;flex-direction:column;gap:7px;padding-bottom:34px}
+.brk{flex:none;display:flex;flex-direction:column;gap:7px}
 .brk div{display:flex;gap:12px;justify-content:space-between;
   font:500 12.5px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
 .brk b{font-weight:500;color:var(--txt)}

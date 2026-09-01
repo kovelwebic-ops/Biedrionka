@@ -293,15 +293,13 @@ function viewShift(){
       <div class="cur">${dept}</div>
       ${blocked?`<div class="pill">заблоковано</div>`:""}
     </div>
-    <div class="bigrow">
-      <div class="bigcol">
-        <div class="bignum" id="liveQty">${nf(c.qty)}</div>
-        <div class="bigcap">картонів за зміну</div>
-      </div>
+    <div class="bigrow ${c.rows.length>1?"split":""}">
+      <div class="bignum" id="liveQty">${nf(c.qty)}</div>
       ${c.rows.length>1 ? `<div class="brk">
         ${c.rows.map(r=>`<div><span>${r.dept}</span><b>${nf(r.qty)}</b></div>`).join("")}
       </div>` : ""}
     </div>
+    <div class="bigcap">картонів за зміну</div>
     <div class="tiles">
       <button class="tile" data-act="sheet" data-v="start">
         <div class="lab">Робота</div>
