@@ -62,9 +62,10 @@ input,textarea{font-family:inherit}
   font-variant-numeric:tabular-nums;white-space:nowrap}
 /* коли поруч стоїть розклад по відділах, числу лишається менше місця */
 .bigrow.split .bignum{font-size:clamp(62px,20vw,112px)}
-.bigcap{margin-top:14px;font:600 11px/1 var(--m);letter-spacing:.14em;
+.bigcap{margin-top:22px;font:600 11px/1 var(--m);letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim)}
-.brk{flex:none;display:flex;flex-direction:column;gap:7px}
+/* margin-left:auto притискає розклад до правого краю картки */
+.brk{flex:none;margin-left:auto;display:flex;flex-direction:column;gap:7px}
 .brk div{display:flex;gap:12px;justify-content:space-between;
   font:500 12.5px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
 .brk b{font-weight:500;color:var(--txt)}
