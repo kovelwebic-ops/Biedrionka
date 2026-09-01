@@ -5,3 +5,6 @@ desktop.ini
 
 # тимчасові збірки прев'ю
 _preview.html
+
+# локальні налаштування Claude Code
+.claude/

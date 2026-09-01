@@ -28,18 +28,41 @@ function load(){
     return raw ? normalize(JSON.parse(raw)) : DEF();
   }catch(e){ return DEF(); }
 }
-/* Чужі дані завжди проходять через це: чого бракує — береться з типового,
-   що зіпсоване — замінюється, а не валить застосунок. */
+/* Оголошені через function, а не const: normalize() працює вже на рядку з
+   `let S = load()`, тобто раніше за все, що нижче. */
+function isNum(v){ return typeof v === "number" && isFinite(v); }
+function triple(a){ return Array.isArray(a) && a.length===3 && a.every(v=>isNum(v) && v>0); }
+/* Відділ не звіряємо зі списком: у старих даних можуть бути закриті відділи,
+   і краще показати їх за типовою ставкою, ніж викинути цілу зміну. */
+function okShift(s){
+  return !!s && typeof s.date === "string" && isNum(s.start) && (s.end==null || isNum(s.end))
+    && Array.isArray(s.blocks) && Array.isArray(s.legs) && s.legs.length > 0
+    && s.legs.every(l => !!l && typeof l.dept === "string" && isNum(l.start)
+        && Array.isArray(l.cartons) && l.cartons.every(c => !!c && isNum(c.qty)));
+}
+
+/* Єдині ворота для чужих даних — і з localStorage, і з відновленої копії.
+   Перевіряти треба саме те, на що спирається решта коду: ставка без norm
+   не завалить load() (у нього є catch), вона завалить рендер — уже поза
+   будь-яким catch. Тоді застосунок білий екран і після перезапуску теж. */
 function normalize(d){
   const base = DEF();
   base.settings = Object.assign(base.settings, d.settings||{});
   if(!["n","b"].includes(base.settings.rate)) base.settings.rate = "n";
   if(!["dark","light"].includes(base.settings.theme)) base.settings.theme = "dark";
   if(!DEPTS.includes(base.settings.lastDept)) base.settings.lastDept = DEPTS[0];
-  for(const dep of DEPTS) if(d.rates && d.rates[dep]) base.rates[dep] = d.rates[dep];
-  base.shifts = Array.isArray(d.shifts) ? d.shifts : [];
-  base.blends = Array.isArray(d.blends) ? d.blends : [];
-  base.penalties = Array.isArray(d.penalties) ? d.penalties : [];
+  for(const dep of DEPTS){
+    const r = d.rates && d.rates[dep];
+    if(r && triple(r.norm) && triple(r.b) && triple(r.n))
+      base.rates[dep] = {norm:[...r.norm], b:[...r.b], n:[...r.n]};
+  }
+  const arr = k => Array.isArray(d[k]) ? d[k] : [];
+  base.shifts = arr("shifts").filter(okShift);
+  /* id потрібен, щоб рядок можна було видалити; без нього він застрягне назавжди */
+  base.blends = arr("blends").filter(b => b && typeof b.date === "string")
+    .map(b => ({...b, id: b.id || uid()}));
+  base.penalties = arr("penalties").filter(p => p && typeof p.date === "string" && isNum(p.amount))
+    .map(p => ({...p, id: p.id || uid()}));
   return base;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -98,8 +121,8 @@ function blockedIn(sh, from, to, t){
 }
 
 /* Зміна — тільки факти: картони, час, норма. Жодних грошей: ставка відома за місяць. */
-function calc(sh, t){
-  t = t || now();
+function calc(sh){
+  const t = now();
   const end = sh.end || t;
   const map = new Map();
   for(const leg of sh.legs){
@@ -113,20 +136,19 @@ function calc(sh, t){
     r.blockMs += bl;
   }
   const rows = [...map.values()];
-  let qty=0, norm=0, workMs=0, blockMs=0;
+  let qty=0, workMs=0, blockMs=0;
   for(const r of rows){
     r.norm = (r.workMs/3600000) * normOf(r.dept);
     r.pct = r.norm>0 ? r.qty/r.norm*100 : 0;
-    qty+=r.qty; norm+=r.norm; workMs+=r.workMs; blockMs+=r.blockMs;
+    qty+=r.qty; workMs+=r.workMs; blockMs+=r.blockMs;
   }
-  return {qty, norm, pct: norm>0 ? qty/norm*100 : 0, rows, workMs, blockMs,
-          totalMs: Math.max(0, end-sh.start), end};
+  return {qty, rows, workMs, blockMs};
 }
 
 /* Місяць — єдине місце, де рахуються гроші.
    У кожного відділу свій відсоток, свій поріг і своя ставка. */
 function monthCalc(ym){
-  const list = S.shifts.filter(s=>s.end && s.date.slice(0,7)===ym).sort((a,b)=>a.start-b.start);
+  const list = S.shifts.filter(s=>s.end && s.date.slice(0,7)===ym);
   const map = new Map();
   let qty=0, workMs=0, blockMs=0;
   for(const s of list){
@@ -153,19 +175,20 @@ function monthCalc(ym){
   }
   const pen = S.penalties.filter(p=>p.date.slice(0,7)===ym).sort((a,b)=>a.date.localeCompare(b.date));
   const penSum = pen.reduce((a,p)=>a+p.amount,0);
-  return {list, rows, qty, pay, pen, penSum, total: pay-penSum, workMs, blockMs};
+  return {rows, qty, pay, pen, penSum, total: pay-penSum, workMs, blockMs};
 }
 
 /* ============ бленди ============ */
-function cartonsSince(dateStr){
-  let n = 0;
-  for(const s of S.shifts) if(s.date >= dateStr) n += calc(s).qty;
-  return n;
-}
 function blendRows(){
+  /* Картони кожної зміни рахуємо один раз на всі бленди, а не заново для
+     кожного: calc() перебирає відрізки й блокування, і на річних даних
+     повторний перерахунок був найдорожчим місцем у застосунку. */
+  const days = S.shifts.map(s => ({date:s.date, qty:calc(s).qty}));
   let used = 0;
   return [...S.blends].sort((a,b)=>a.date.localeCompare(b.date)).map(bl => {
-    const done = Math.min(BLEND_QTY, Math.max(0, cartonsSince(bl.date) - used));
+    let since = 0;
+    for(const d of days) if(d.date >= bl.date) since += d.qty;
+    const done = Math.min(BLEND_QTY, Math.max(0, since - used));
     used += done;
     return {bl, done, closed: done>=BLEND_QTY};
   });
@@ -297,7 +320,7 @@ function viewShift(){
     </div>
     <div class="bigrow ${c.rows.length>1?"split":""}">
       <div class="bigcol">
-        <div class="bignum" id="liveQty">${nf(c.qty)}</div>
+        <div class="bignum">${nf(c.qty)}</div>
         <div class="bigcap">картонів за зміну</div>
       </div>
       ${c.rows.length>1 ? `<div class="brk">
@@ -375,23 +398,24 @@ function dockHtml(){
 
 /* ---------- Історія ---------- */
 function viewHist(){
-  const done = S.shifts.filter(s=>s.end).sort((a,b)=>b.start-a.start);
+  /* Рахуємо кожну зміну один раз і передаємо далі: підсумок місяця й рядок
+     дня потребують того самого calc(). */
+  const done = S.shifts.filter(s=>s.end).sort((a,b)=>b.start-a.start).map(s=>({s, c:calc(s)}));
   if(!done.length) return `<div class="h1">Історія</div><div class="blank">Завершених змін ще немає</div>`;
   const byMonth = {};
-  for(const s of done){ const k=s.date.slice(0,7); (byMonth[k]=byMonth[k]||[]).push(s); }
+  for(const it of done){ const k=it.s.date.slice(0,7); (byMonth[k]=byMonth[k]||[]).push(it); }
   return `<div class="h1">Історія</div>` + Object.keys(byMonth).sort().reverse().map(k=>{
     const arr = byMonth[k];
-    const q = arr.reduce((a,s)=>a+calc(s).qty,0);
+    const q = arr.reduce((a,it)=>a+it.c.qty,0);
     const [y,m] = k.split("-");
     return `<div class="mgroup">
       <div class="mgroup-head"><span>${MONTHS[+m-1]} ${y}</span><b>${nf(q)} карт.</b></div>
-      ${arr.map(dayRow).join("")}
+      ${arr.map(it=>dayRow(it.s, it.c)).join("")}
     </div>`;
   }).join("");
 }
 
-function dayRow(s){
-  const c = calc(s);
+function dayRow(s,c){
   const d = new Date(s.date+"T12:00:00");
   return `<div class="srow">
     <button data-act="openday" data-v="${s.id}">
