@@ -179,13 +179,19 @@ function monthCalc(ym){
 }
 
 /* ============ бленди ============ */
-function blendRows(){
+/* Бленди живуть у межах свого місяця: наприкінці місяця вони закриваються,
+   а наступний починає список із чистого аркуша. Тому й бленди, і зміни,
+   з яких набігають картони, беремо тільки за цей місяць. */
+function blendRows(ym){
+  const mine = S.blends.filter(b => b.date.slice(0,7)===ym)
+                       .sort((a,b)=>a.date.localeCompare(b.date));
+  if(!mine.length) return [];
   /* Картони кожної зміни рахуємо один раз на всі бленди, а не заново для
-     кожного: calc() перебирає відрізки й блокування, і на річних даних
-     повторний перерахунок був найдорожчим місцем у застосунку. */
-  const days = S.shifts.map(s => ({date:s.date, qty:calc(s).qty}));
+     кожного: calc() перебирає відрізки й блокування. */
+  const days = S.shifts.filter(s => s.date.slice(0,7)===ym)
+                       .map(s => ({date:s.date, qty:calc(s).qty}));
   let used = 0;
-  return [...S.blends].sort((a,b)=>a.date.localeCompare(b.date)).map(bl => {
+  return mine.map(bl => {
     let since = 0;
     for(const d of days) if(d.date >= bl.date) since += d.qty;
     const done = Math.min(BLEND_QTY, Math.max(0, since - used));
@@ -457,7 +463,7 @@ function viewMonth(){
   if(!ui.month) ui.month = ymOf(new Date());
   const [y,m] = ui.month.split("-").map(Number);
   const M = monthCalc(ui.month);
-  const bl = blendRows();
+  const bl = blendRows(ui.month);
   const marks = [[66.7,"100"],[76.7,"115"],[86.7,"130"]];
 
   return `
@@ -599,6 +605,13 @@ function openSheet(kind){
 }
 function closeSheet(){ ui.sheet=null; ui.pad=""; ui.snap=null; document.getElementById("sheetHost").innerHTML=""; }
 
+/* Сьогодні — але в межах місяця, який зараз відкритий. Інакше доданий запис
+   мовчки зникне: списки блендів і штрафів показують лише свій місяць. */
+function defaultDate(){
+  const ym = ui.month || ymOf(new Date()), today = dkey(now());
+  return today.slice(0,7)===ym ? today : ym+"-01";
+}
+
 function sheetBody(kind){
   const sh = activeShift();
   if(kind==="order"){
@@ -631,13 +644,13 @@ function sheetBody(kind){
       <button class="accbtn sm" data-act="dofinish">Завершити зміну</button>`;
   }
   if(kind==="blend"){
-    return `<label class="field"><div class="lab">Дата</div><input type="date" id="fDate" value="${dkey(now())}"></label>
+    return `<label class="field"><div class="lab">Дата</div><input type="date" id="fDate" value="${defaultDate()}"></label>
       <label class="field"><div class="lab">Примітка</div><input type="text" id="fNote"></label>
       <button class="accbtn sm" data-act="doblend">Додати бленд</button>`;
   }
   if(kind==="pen"){
     return `<label class="field"><div class="lab">Сума, zł</div><input class="money" inputmode="decimal" id="fAmount"></label>
-      <label class="field"><div class="lab">Дата</div><input type="date" id="fDate" value="${dkey(now())}"></label>
+      <label class="field"><div class="lab">Дата</div><input type="date" id="fDate" value="${defaultDate()}"></label>
       <label class="field"><div class="lab">Примітка</div><input type="text" id="fNote"></label>
       <button class="accbtn sm" data-act="dopen">Додати штраф</button>`;
   }
