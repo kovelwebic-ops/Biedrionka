@@ -20,7 +20,7 @@ const DEF = () => ({
 });
 
 let S = load();
-let ui = {tab:"shift", openDay:null, month:null, sheet:null, pad:"", ctx:null};
+let ui = {tab:"shift", openDay:null, month:null, sheet:null, pad:"", ctx:null, snap:null};
 
 function load(){
   try{
@@ -321,7 +321,9 @@ function viewShift(){
       <span class="q">${nf(o.c.qty)}</span>
       <button class="x" data-act="delorder" data-v="${o.c.id}" aria-label="Видалити">✕</button>
     </div>`).join("") : `<div class="blank">Замовлень ще немає</div>`}
-  </div>`;
+  </div>
+
+  <button class="snapbtn" data-act="snapshot">Зведення</button>`;
 }
 
 function idleShift(){
@@ -404,16 +406,21 @@ function dayRow(s){
   </div>`;
 }
 
+/* Розклад по відділах — однаковий у деталях зміни та у зведенні під час зміни. */
+function deptTable(c){
+  return `<div class="tblwrap"><table class="tbl">
+    <thead><tr><th>Відділ</th><th>Карт</th><th>Час</th><th>%</th></tr></thead>
+    <tbody>
+      ${c.rows.filter(r=>r.qty>0||r.workMs>60000).map(r=>`<tr>
+        <td>${r.dept}</td><td>${nf(r.qty)}</td><td>${dur(r.workMs)}</td>
+        <td style="color:${tone(r.pct)}">${r.norm>0?pctNum(r.pct)+"%":"—"}</td></tr>`).join("")}
+    </tbody>
+  </table></div>`;
+}
+
 function dayDetail(s,c){
   return `<div class="detail">
-    <div class="tblwrap"><table class="tbl">
-      <thead><tr><th>Відділ</th><th>Карт</th><th>Час</th><th>%</th></tr></thead>
-      <tbody>
-        ${c.rows.filter(r=>r.qty>0||r.workMs>60000).map(r=>`<tr>
-          <td>${r.dept}</td><td>${nf(r.qty)}</td><td>${dur(r.workMs)}</td>
-          <td style="color:${tone(r.pct)}">${r.norm>0?pctNum(r.pct)+"%":"—"}</td></tr>`).join("")}
-      </tbody>
-    </table></div>
+    ${deptTable(c)}
     <div class="dmeta"><span>${hhmm(s.start)}–${hhmm(s.end)}</span><span>блок ${dur(c.blockMs)}</span></div>
     <button class="delbtn" data-act="ask" data-v="shift:${s.id}">Видалити зміну</button>
   </div>`;
@@ -546,7 +553,7 @@ function viewSettings(){
 
 /* ============ шторки ============ */
 const SHEET_TITLES = {order:"Замовлення", dept:"Відділ", start:"Початок зміни",
-  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду"};
+  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду", now:"Зведення"};
 
 function openSheet(kind){
   ui.sheet = kind; ui.pad = "";
@@ -564,7 +571,7 @@ function openSheet(kind){
       ${sheetBody(kind)}
     </div></div>`;
 }
-function closeSheet(){ ui.sheet=null; ui.pad=""; document.getElementById("sheetHost").innerHTML=""; }
+function closeSheet(){ ui.sheet=null; ui.pad=""; ui.snap=null; document.getElementById("sheetHost").innerHTML=""; }
 
 function sheetBody(kind){
   const sh = activeShift();
@@ -608,6 +615,16 @@ function sheetBody(kind){
       <label class="field"><div class="lab">Примітка</div><input type="text" id="fNote"></label>
       <button class="accbtn sm" data-act="dopen">Додати штраф</button>`;
   }
+  if(kind==="now"){
+    /* Знімок, а не живі числа: порахований один раз при відкритті. */
+    const c = ui.snap; if(!c) return "";
+    return `<div class="stats3">
+      <div><div class="lab">Картони</div><div class="val num">${nf(c.qty)}</div></div>
+      <div><div class="lab">Робота</div><div class="val num">${dur(c.workMs)}</div></div>
+      <div><div class="lab">Блок</div><div class="val num ${c.blockMs>0?"":"off"}">${dur(c.blockMs)}</div></div>
+    </div>
+    ${deptTable(c)}`;
+  }
   if(kind==="confirm"){
     const type = (ui.ctx||{}).type;
     const yes = type==="restore" ? "Відновити" : type==="wipe" ? "Стерти" : "Видалити";
@@ -635,6 +652,7 @@ document.addEventListener("click", ev => {
     case "delorder": delOrder(v); break;
     case "block": toggleBlock(); break;
     case "setdept": switchDept(v); break;
+    case "snapshot": { const sh=activeShift(); if(sh){ ui.snap=calc(sh); openSheet("now"); } break; }
     case "sheet": openSheet(v); break;
     case "closesheet": case "scrim": closeSheet(); break;
 
