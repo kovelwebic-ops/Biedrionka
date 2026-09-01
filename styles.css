@@ -160,7 +160,7 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .dc-id{font:700 22px/1 var(--m);letter-spacing:-.01em}
 .dc-qty{font:600 17px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
 .dc-money{font:700 19px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap}
-.dc-more{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);animation:fade .18s}
+.dc-more{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
 .dc-formula{margin-top:12px;text-align:center;font:400 11.5px/1 var(--m);color:var(--dim2)}
 .dc-bar{position:relative;height:10px;margin-top:16px;border-radius:3px;
   background:var(--sur2);overflow:hidden}
@@ -210,7 +210,7 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .rcards{display:flex;flex-direction:column;gap:12px;margin-top:14px}
 .rcard{background:var(--sur);border:1px solid var(--line);border-radius:16px;padding:16px}
 .rcard .id{font:700 20px/1 var(--m)}
-.rhead,.rrow{display:grid;grid-template-columns:46px 1fr 1fr;gap:8px;align-items:center}
+.rhead,.rrow{display:grid;grid-template-columns:38px 1fr 1fr 1fr;gap:6px;align-items:center}
 .rhead{margin-top:14px;padding:0 2px}
 .rhead span{font:600 10px/1 var(--m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim2)}
 .rhead span+span{text-align:center}
@@ -218,9 +218,9 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .rt{font:600 12px/1 var(--m);color:var(--dim)}
 /* поле й похідне значення мають однакову коробку — висоту задаємо явно,
    бо інпут рахує міжрядковий інтервал інакше, ніж звичайний елемент */
-.rrow input,.rfix{min-height:46px;padding:0 8px;border-radius:10px;
+.rrow input,.rfix{min-height:46px;padding:0 4px;border-radius:10px;
   background:var(--sur2);border:1px solid var(--line);
-  font:600 15px/1 var(--m);font-variant-numeric:tabular-nums;text-align:center}
+  font:600 14px/1 var(--m);font-variant-numeric:tabular-nums;text-align:center}
 .rrow input{width:100%;color:var(--txt);-moz-appearance:textfield}
 .rfix{display:flex;align-items:center;justify-content:center;color:var(--txt)}
 .bkbtns{display:flex;flex-direction:column;gap:10px;margin-top:14px}
@@ -281,3 +281,4 @@ input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px;bord
 
 /* власні іконки замість емодзі-символів */
 .gi{width:11px;height:11px;fill:currentColor;vertical-align:-1px;margin-right:7px}
+.warn{margin:-4px 0 16px;font:400 13px/1.4 var(--f);color:var(--dim)}

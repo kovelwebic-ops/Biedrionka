@@ -20,23 +20,27 @@ const DEF = () => ({
 });
 
 let S = load();
-let ui = {tab:"shift", openDay:null, openDepts:[], month:null, sheet:null, pad:"", ctx:null};
+let ui = {tab:"shift", openDay:null, month:null, sheet:null, pad:"", ctx:null};
 
 function load(){
   try{
     const raw = localStorage.getItem(KEY) || localStorage.getItem("akkord.v1");
-    if(!raw) return DEF();
-    const d = JSON.parse(raw), base = DEF();
-    base.settings = Object.assign(base.settings, d.settings||{});
-    if(!["n","b"].includes(base.settings.rate)) base.settings.rate = "n";
-    if(!["dark","light"].includes(base.settings.theme)) base.settings.theme = "dark";
-    if(!DEPTS.includes(base.settings.lastDept)) base.settings.lastDept = DEPTS[0];
-    for(const dep of DEPTS) if(d.rates && d.rates[dep]) base.rates[dep] = d.rates[dep];
-    base.shifts = Array.isArray(d.shifts) ? d.shifts : [];
-    base.blends = Array.isArray(d.blends) ? d.blends : [];
-    base.penalties = Array.isArray(d.penalties) ? d.penalties : [];
-    return base;
+    return raw ? normalize(JSON.parse(raw)) : DEF();
   }catch(e){ return DEF(); }
+}
+/* Чужі дані завжди проходять через це: чого бракує — береться з типового,
+   що зіпсоване — замінюється, а не валить застосунок. */
+function normalize(d){
+  const base = DEF();
+  base.settings = Object.assign(base.settings, d.settings||{});
+  if(!["n","b"].includes(base.settings.rate)) base.settings.rate = "n";
+  if(!["dark","light"].includes(base.settings.theme)) base.settings.theme = "dark";
+  if(!DEPTS.includes(base.settings.lastDept)) base.settings.lastDept = DEPTS[0];
+  for(const dep of DEPTS) if(d.rates && d.rates[dep]) base.rates[dep] = d.rates[dep];
+  base.shifts = Array.isArray(d.shifts) ? d.shifts : [];
+  base.blends = Array.isArray(d.blends) ? d.blends : [];
+  base.penalties = Array.isArray(d.penalties) ? d.penalties : [];
+  return base;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
@@ -58,6 +62,11 @@ function money(v){
 }
 const dec = (n,d) => Number(n).toFixed(d).replace(".",",");
 const normFmt = v => Number.isInteger(v) ? String(v) : dec(v,2);
+function plural(n, one, few, many){
+  const a = Math.abs(n)%100, b = a%10;
+  return (a>10 && a<20) ? many : b===1 ? one : (b>=2 && b<=4) ? few : many;
+}
+const nShifts = n => n+" "+plural(n,"зміну","зміни","змін");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const dLabel = ds => ds.slice(8,10)+"."+ds.slice(5,7);
 
@@ -434,14 +443,14 @@ function viewMonth(){
   <div class="dcards">
     ${M.rows.length ? M.rows.map(r=>`
     <div class="dcard">
-      <button class="dc-head" data-act="opendept" data-v="${r.dept}">
+      <div class="dc-head">
         <span class="dc-left">
           <span class="dc-id">${r.dept}</span>
           <span class="dc-qty num">${nf(r.qty)} карт.</span>
         </span>
         <span class="dc-money num">${money(r.pay)}</span>
-      </button>
-      ${ui.openDepts.includes(r.dept) ? `<div class="dc-more">
+      </div>
+      <div class="dc-more">
         <div class="stats3">
           <div><div class="lab">Темп</div><div class="val num">${Math.round(r.tempo)}<i>/год</i></div></div>
           <div><div class="lab">Час</div><div class="val num">${dur(r.workMs)}</div></div>
@@ -450,7 +459,7 @@ function viewMonth(){
         <div class="dc-bar"><span style="width:${Math.min(100, r.norm>0?r.pct/150*100:0).toFixed(1)}%;background:${tone(r.pct)}"></span></div>
         <div class="dc-marks">${marks.map(([at,l])=>`<span style="left:${at}%">${l}</span>`).join("")}</div>
         <div class="dc-formula">${r.formula}</div>
-      </div>` : ""}
+      </div>
     </div>`).join("") : `<div class="blank">За цей місяць змін немає</div>`}
   </div>
 
@@ -514,13 +523,14 @@ function viewSettings(){
       const r = S.rates[d];
       return `<div class="rcard">
         <div class="id">${d}</div>
-        <div class="rhead"><span>Поріг</span><span>Карт/год</span><span>zł/карт</span></div>
+        <div class="rhead"><span>Поріг</span><span>Карт/год</span><span>zł/карт</span><span>zł/год</span></div>
         ${TIERS.map((tier,i)=>`<div class="rrow">
           <span class="rt">${tier}%</span>
           ${i===0
             ? `<input inputmode="decimal" data-rate="${d}" data-f="norm" data-i="0" value="${normFmt(r.norm[0])}">`
             : `<span class="rfix num">${normFmt(r.norm[i])}</span>`}
           <input inputmode="decimal" data-rate="${d}" data-f="${t}" data-i="${i}" value="${dec(r[t][i],4)}">
+          <span class="rfix num">${dec(r.norm[i]*r[t][i], 2)}</span>
         </div>`).join("")}
       </div>`;
     }).join("")}
@@ -529,20 +539,22 @@ function viewSettings(){
   <div class="sect-lab" style="margin-top:30px">Резервна копія</div>
   <div class="bkbtns">
     <button class="bkbtn" data-act="export">Зберегти файл</button>
-    <button class="bkbtn" data-act="sheet" data-v="restore">Відновити з копії</button>
+    <button class="bkbtn" data-act="pickfile">Відновити з файлу</button>
     <button class="bkbtn neg" data-act="ask" data-v="wipe:">Стерти всі дані</button>
   </div>`;
 }
 
 /* ============ шторки ============ */
 const SHEET_TITLES = {order:"Замовлення", dept:"Відділ", start:"Початок зміни",
-  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду", restore:"Відновити з копії"};
+  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду"};
 
 function openSheet(kind){
   ui.sheet = kind; ui.pad = "";
-  const title = kind==="confirm"
-    ? (ui.ctx && ui.ctx.type==="wipe" ? "Стерти всі дані?" : "Видалити зміну?")
-    : SHEET_TITLES[kind] || "";
+  const c = ui.ctx || {};
+  const title = kind!=="confirm" ? (SHEET_TITLES[kind] || "")
+    : c.type==="wipe"    ? "Стерти всі дані?"
+    : c.type==="restore" ? "Відновити "+nShifts(c.count)+"?"
+    : "Видалити зміну?";
   document.getElementById("sheetHost").innerHTML =
     `<div class="scrim" data-act="scrim"><div class="sheet">
       <div class="sheet-head">
@@ -596,14 +608,13 @@ function sheetBody(kind){
       <label class="field"><div class="lab">Примітка</div><input type="text" id="fNote"></label>
       <button class="accbtn sm" data-act="dopen">Додати штраф</button>`;
   }
-  if(kind==="restore"){
-    return `<label class="field"><textarea id="fNote" rows="6"></textarea></label>
-      <button class="accbtn sm" data-act="doimport">Відновити</button>`;
-  }
   if(kind==="confirm"){
-    return `<div class="confirm">
+    const type = (ui.ctx||{}).type;
+    const yes = type==="restore" ? "Відновити" : type==="wipe" ? "Стерти" : "Видалити";
+    return `${type==="restore"?`<div class="warn">Поточні дані буде замінено</div>`:""}
+    <div class="confirm">
       <button class="cancel" data-act="closesheet">Скасувати</button>
-      <button class="yes" data-act="doconfirm">Видалити</button>
+      <button class="yes" data-act="doconfirm">${yes}</button>
     </div>`;
   }
   return "";
@@ -618,7 +629,7 @@ document.addEventListener("click", ev => {
 
   switch(a){
     case "theme": S.settings.theme=v; save(); applyTheme(); render(); break;
-    case "tab": ui.tab=v; ui.openDay=null; ui.openDepts=[]; render(); window.scrollTo(0,0); break;
+    case "tab": ui.tab=v; ui.openDay=null; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;
     case "delorder": delOrder(v); break;
@@ -650,16 +661,17 @@ document.addEventListener("click", ev => {
     case "padok": { const n=parseInt(ui.pad||"0",10); closeSheet(); addOrder(n); break; }
 
     case "openday": ui.openDay = ui.openDay===v ? null : v; render(); break;
-    case "opendept": ui.openDepts = ui.openDepts.includes(v) ? ui.openDepts.filter(x=>x!==v) : ui.openDepts.concat(v); render(); break;
     case "ask": { const [type,id]=v.split(":"); ui.ctx={type,id}; openSheet("confirm"); break; }
     case "doconfirm": {
       const c = ui.ctx || {};
       if(c.type==="shift") S.shifts = S.shifts.filter(s=>s.id!==c.id);
       else if(c.type==="wipe") S = DEF();
+      else if(c.type==="restore") S = normalize(c.data);
       ui.ctx=null; ui.openDay=null; save(); applyTheme(); closeSheet(); render();
+      if(c.type==="restore") toast("Відновлено "+nShifts(S.shifts.length));
       break;
     }
-    case "mon": ui.month=v; ui.openDepts=[]; render(); break;
+    case "mon": ui.month=v; render(); break;
 
     case "doblend": {
       const d=document.getElementById("fDate").value;
@@ -679,16 +691,7 @@ document.addEventListener("click", ev => {
 
     case "ratetype": S.settings.rate=v; save(); render(); break;
     case "export": doExport(); break;
-    case "doimport": {
-      try{
-        const d = JSON.parse(document.getElementById("fNote").value);
-        if(!d || !Array.isArray(d.shifts)) throw new Error("bad");
-        localStorage.setItem(KEY, JSON.stringify(d));
-        S = load(); save(); applyTheme(); closeSheet(); render();
-        toast("Відновлено: "+S.shifts.length+" змін");
-      }catch(e){ toast("Це не схоже на копію"); }
-      break;
-    }
+    case "pickfile": pickBackupFile(); break;
   }
 });
 
@@ -729,6 +732,33 @@ async function doExport(){
     if(dl){ await dl.save({filename, data}); toast("Збережено"); return; }
   }catch(e){}
   toast("Не вдалось зберегти");
+}
+
+/* Читаємо копію з файла. Дані не чіпаємо одразу — спершу показуємо,
+   що всередині, бо відновлення затирає все, що є зараз. */
+function pickBackupFile(){
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "application/json,.json";
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+  inp.addEventListener("change", ()=>{
+    const f = inp.files && inp.files[0];
+    inp.remove();
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onerror = ()=> toast("Не вдалось прочитати файл");
+    rd.onload = ()=>{
+      try{
+        const d = JSON.parse(rd.result);
+        if(!d || !Array.isArray(d.shifts)) throw new Error("не копія");
+        ui.ctx = {type:"restore", data:d, count:d.shifts.length};
+        openSheet("confirm");
+      }catch(e){ toast("Це не схоже на копію"); }
+    };
+    rd.readAsText(f);
+  });
+  inp.click();
 }
 
 /* ============ годинники ============
