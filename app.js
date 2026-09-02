@@ -233,11 +233,17 @@ function switchDept(dept){
   const sh = activeShift(); if(!sh) return;
   const leg = sh.legs[sh.legs.length-1];
   if(leg.dept===dept){ closeSheet(); return; }
-  /* Час завжди лишається на тому відділі, де він минув, навіть без замовлень:
-     поки шукаєш сканер і збираєшся, ти вже стоїш на своєму відділі. */
-  const t = now();
-  leg.end = t;
-  sh.legs.push({id:uid(), dept, start:t, end:null, cartons:[]});
+  /* Поки за зміну не взято жодного замовлення, час іде туди, де ти його
+     врешті візьмеш: відбився на своєму відділі, нічого взяти не встиг,
+     перекинули на інший — усі ці хвилини рахуються новому відділу.
+     Щойно перше замовлення взято, відділи вже діляться відрізками. */
+  if(sh.legs.length===1 && leg.cartons.length===0){
+    leg.dept = dept;
+  } else {
+    const t = now();
+    leg.end = t;
+    sh.legs.push({id:uid(), dept, start:t, end:null, cartons:[]});
+  }
   S.settings.lastDept = dept;
   save(); closeSheet(); render();
 }
