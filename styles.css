@@ -144,6 +144,10 @@ table.tbl th{text-align:right;padding:8px 0;font:600 10px/1 var(--m);
 table.tbl th:first-child{text-align:left}
 table.tbl td{padding:11px 0;text-align:right;border-top:1px solid var(--line)}
 table.tbl td:first-child{text-align:left;color:var(--dim)}
+.earned{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.earned span{font:600 11px/1 var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.earned b{font:700 20px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--txt)}
 .dmeta{display:flex;gap:20px;margin-top:16px;font:400 12px/1 var(--m);color:var(--dim)}
 .delbtn{margin-top:16px;padding:13px 16px;border-radius:11px;border:1px solid var(--line);
   font:600 13px/1 var(--f);color:var(--neg)}

@@ -31,6 +31,10 @@ function load(){
 /* Оголошені через function, а не const: normalize() працює вже на рядку з
    `let S = load()`, тобто раніше за все, що нижче. */
 function isNum(v){ return typeof v === "number" && isFinite(v); }
+function okTiers(t){
+  return !!t && typeof t === "object" && !Array.isArray(t)
+    && Object.values(t).every(v => v===0 || v===1 || v===2);
+}
 function triple(a){ return Array.isArray(a) && a.length===3 && a.every(v=>isNum(v) && v>0); }
 /* Відділ не звіряємо зі списком: у старих даних можуть бути закриті відділи,
    і краще показати їх за типовою ставкою, ніж викинути цілу зміну. */
@@ -57,7 +61,12 @@ function normalize(d){
       base.rates[dep] = {norm:[...r.norm], b:[...r.b], n:[...r.n]};
   }
   const arr = k => Array.isArray(d[k]) ? d[k] : [];
-  base.shifts = arr("shifts").filter(okShift);
+  /* Старі зміни планок не мають — це нормально, у них просто не буде суми.
+     Зіпсовані планки прибираємо, щоб не показати NaN замість грошей. */
+  base.shifts = arr("shifts").filter(okShift).map(s => {
+    if(s.tiers===undefined || okTiers(s.tiers)) return s;
+    const {tiers, ...rest} = s; return rest;
+  });
   /* id потрібен, щоб рядок можна було видалити; без нього він застрягне назавжди */
   base.blends = arr("blends").filter(b => b && typeof b.date === "string")
     .map(b => ({...b, id: b.id || uid()}));
@@ -178,6 +187,20 @@ function monthCalc(ym){
   return {rows, qty, pay, pen, penSum, total: pay-penSum, workMs, blockMs};
 }
 
+/* Планка кожного відділу зміни — та, що зараз стоїть у статистиці місяця
+   (там лише завершені зміни). Власні час і норма зміни ролі не грають. */
+function shiftTiers(sh){
+  const all = {};
+  for(const r of monthCalc(sh.date.slice(0,7)).rows) all[r.dept] = r.ti;
+  const t = {};
+  for(const leg of sh.legs) t[leg.dept] = all[leg.dept] || 0;
+  return t;
+}
+/* Зароблено за зміну: картони відділу × ставка його планки. */
+function shiftPay(c, tiers){
+  return c.rows.reduce((a,r) => a + r.qty * rateOf(r.dept)[tiers[r.dept] || 0], 0);
+}
+
 /* ============ бленди ============ */
 /* Бленди живуть у межах свого місяця: наприкінці місяця вони закриваються,
    а наступний починає список із чистого аркуша. Тому й бленди, і зміни,
@@ -258,6 +281,10 @@ function finishShift(startStr, endStr){
       for(const b of sh.blocks) if(b.start<ns) b.start = ns;
     }
   }
+  /* Фіксуємо планки на момент завершення: сума зміни в історії не має
+     пливти, коли пізніше місячний відсоток перескочить на іншу планку.
+     Рахуємо до sh.end — тоді сама зміна у статистику ще не входить. */
+  sh.tiers = shiftTiers(sh);
   let e = now();
   if(endStr){ const ne = timeEnd(sh.start, endStr); if(ne) e = ne; }
   if(e < sh.start) e = sh.start;
@@ -456,9 +483,12 @@ function deptTable(c){
   </table></div>`;
 }
 
+const earnedRow = v => `<div class="earned"><span>Зароблено</span><b class="num">${money(v)}</b></div>`;
+
 function dayDetail(s,c){
   return `<div class="detail">
     ${deptTable(c)}
+    ${s.tiers ? earnedRow(shiftPay(c, s.tiers)) : ""}
     <div class="dmeta"><span>${hhmm(s.start)}–${hhmm(s.end)}</span><span>блок ${dur(c.blockMs)}</span></div>
     <button class="delbtn" data-act="ask" data-v="shift:${s.id}">Видалити зміну</button>
   </div>`;
@@ -668,7 +698,8 @@ function sheetBody(kind){
       <div><div class="lab">Робота</div><div class="val num">${dur(c.workMs)}</div></div>
       <div><div class="lab">Блок</div><div class="val num ${c.blockMs>0?"":"off"}">${dur(c.blockMs)}</div></div>
     </div>
-    ${deptTable(c)}`;
+    ${deptTable(c)}
+    ${earnedRow(c.pay)}`;
   }
   if(kind==="confirm"){
     const type = (ui.ctx||{}).type;
@@ -697,7 +728,7 @@ document.addEventListener("click", ev => {
     case "delorder": delOrder(v); break;
     case "block": toggleBlock(); break;
     case "setdept": switchDept(v); break;
-    case "snapshot": { const sh=activeShift(); if(sh){ ui.snap=calc(sh); openSheet("now"); } break; }
+    case "snapshot": { const sh=activeShift(); if(sh){ ui.snap=calc(sh); ui.snap.pay=shiftPay(ui.snap, shiftTiers(sh)); openSheet("now"); } break; }
     case "sheet": openSheet(v); break;
     case "closesheet": case "scrim": closeSheet(); break;
 
