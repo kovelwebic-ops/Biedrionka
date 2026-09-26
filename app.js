@@ -209,16 +209,13 @@ function blendRows(ym){
   const mine = S.blends.filter(b => b.date.slice(0,7)===ym)
                        .sort((a,b)=>a.date.localeCompare(b.date));
   if(!mine.length) return [];
-  /* Картони кожної зміни рахуємо один раз на всі бленди, а не заново для
-     кожного: calc() перебирає відрізки й блокування. */
-  const days = S.shifts.filter(s => s.date.slice(0,7)===ym)
-                       .map(s => ({date:s.date, qty:calc(s).qty}));
-  let used = 0;
+  /* У бленд іде вся сума картонів місяця, з 1 числа — дата бленду на це
+     не впливає. Кілька блендів беруть з цієї суми по черзі, по 3000. */
+  let left = S.shifts.filter(s => s.date.slice(0,7)===ym)
+                     .reduce((a,s) => a + calc(s).qty, 0);
   return mine.map(bl => {
-    let since = 0;
-    for(const d of days) if(d.date >= bl.date) since += d.qty;
-    const done = Math.min(BLEND_QTY, Math.max(0, since - used));
-    used += done;
+    const done = Math.min(BLEND_QTY, left);
+    left -= done;
     return {bl, done, closed: done>=BLEND_QTY};
   });
 }
