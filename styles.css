@@ -222,10 +222,16 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .payout{margin-top:26px;background:var(--sur);border:1px solid var(--line);
   border-radius:16px;padding:20px}
 .payout .lab{font:600 11px/1 var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-.payout .val{margin-top:14px;font:800 40px/1 var(--m);font-variant-numeric:tabular-nums;
-  letter-spacing:-.03em}
+/* Сума — завжди в один рядок: на 320px «1 028,80 zł» при 40px переносила «zł». */
+.payout .val{margin-top:14px;font:800 clamp(28px,10.5vw,40px)/1 var(--m);font-variant-numeric:tabular-nums;
+  letter-spacing:-.03em;white-space:nowrap}
 .payout .sub{margin-top:12px;font:500 11px/1 var(--m);letter-spacing:.1em;
   text-transform:uppercase;color:var(--dim2)}
+.pbreak{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:11px}
+.pbreak div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  font:500 12.5px/1 var(--m);color:var(--dim)}
+.pbreak b{font-weight:600;color:var(--txt);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ========== налаштування ========== */
 .sect-lab{font:600 11px/1 var(--m);letter-spacing:.14em;text-transform:uppercase;

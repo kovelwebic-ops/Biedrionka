@@ -10,6 +10,9 @@ const BASE_RATES = {
 };
 const TIERS = [100,115,130];
 const BLEND_QTY = 3000;
+/* Доплата за кожну годину роботи (без блокування). Однакова в netto і brutto,
+   рахується лише в «До виплати» за місяць. */
+const HOUR_BONUS = 2.5;
 const KEY = "akkord.v2";
 
 const DEF = () => ({
@@ -187,7 +190,8 @@ function monthCalc(ym){
   }
   const pen = S.penalties.filter(p=>p.date.slice(0,7)===ym).sort((a,b)=>a.date.localeCompare(b.date));
   const penSum = pen.reduce((a,p)=>a+p.amount,0);
-  return {rows, qty, pay, pen, penSum, total: pay-penSum, workMs, blockMs};
+  const bonus = (workMs/3600000) * HOUR_BONUS;
+  return {rows, qty, pay, bonus, pen, penSum, total: pay+bonus-penSum, workMs, blockMs};
 }
 
 /* Планка кожного відділу зміни — та, що зараз стоїть у статистиці місяця
@@ -581,7 +585,12 @@ function viewMonth(){
   <div class="payout">
     <div class="lab">До виплати</div>
     <div class="val num">${money(M.total)}</div>
-    <div class="sub">${S.settings.rate==="n"?"netto":"brutto"}${M.penSum?" · мінус "+money(M.penSum):""}</div>
+    <div class="sub">${S.settings.rate==="n"?"netto":"brutto"}</div>
+    ${M.workMs>0 || M.penSum ? `<div class="pbreak">
+      <div><span>Картони</span><b class="num">${money(M.pay)}</b></div>
+      <div><span>Години ${dur(M.workMs)} × ${dec(HOUR_BONUS,2)}</span><b class="num">+${money(M.bonus)}</b></div>
+      ${M.penSum ? `<div><span>Карти бленду</span><b class="num">${money(-M.penSum)}</b></div>` : ""}
+    </div>` : ""}
   </div>`;
 }
 function shiftMonth(ym,delta){
