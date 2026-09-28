@@ -179,6 +179,9 @@ function monthCalc(ym){
     r.rate = rateOf(r.dept)[r.ti];
     r.pay = r.qty * r.rate;
     r.tempo = r.workMs>0 ? r.qty/(r.workMs/3600000) : 0;
+    /* Реальна ставка за годину: скільки вийшло на ділі, а не за таблицею норм.
+       Години ті самі, що в «Час» картки, — без блокування. */
+    r.hourly = r.workMs>0 ? r.pay/(r.workMs/3600000) : 0;
     r.formula = "ставка "+TIERS[r.ti]+"% · "+nf(r.qty)+" × "+dec(r.rate,4);
     pay += r.pay;
   }
@@ -233,12 +236,20 @@ function addOrder(q){
   sh.legs[sh.legs.length-1].cartons.push({id:uid(), qty:q, ts:now()});
   save(); render();
 }
-function delOrder(id){
-  const sh = activeShift(); if(!sh) return;
+/* Замовлення поточної зміни разом із відділом, де воно взяте. */
+function findOrder(id){
+  const sh = activeShift(); if(!sh) return null;
   for(const leg of sh.legs){
     const i = leg.cartons.findIndex(c=>c.id===id);
-    if(i>=0){ leg.cartons.splice(i,1); save(); render(); return; }
+    if(i>=0) return {leg, i, c:leg.cartons[i]};
   }
+  return null;
+}
+/* Видаляє лише через підтвердження (doconfirm): одним випадковим дотиком
+   по ✕ у кишені замовлення зникати не повинно. */
+function delOrder(id){
+  const f = findOrder(id);
+  if(f) f.leg.cartons.splice(f.i, 1);
 }
 function toggleBlock(){
   const sh = activeShift(); if(!sh) return;
@@ -380,7 +391,7 @@ function viewShift(){
       <span class="t">${hhmm(o.c.ts)}</span>
       <span class="d">${o.dept}</span>
       <span class="q">${nf(o.c.qty)}</span>
-      <button class="x" data-act="delorder" data-v="${o.c.id}" aria-label="Видалити">✕</button>
+      <button class="x" data-act="ask" data-v="order:${o.c.id}" aria-label="Видалити">✕</button>
     </div>`).join("") : `<div class="blank">Замовлень ще немає</div>`}
   </div>
 
@@ -520,7 +531,10 @@ function viewMonth(){
           <span class="dc-id">${r.dept}</span>
           <span class="dc-qty num">${nf(r.qty)} карт.</span>
         </span>
-        <span class="dc-money num">${money(r.pay)}</span>
+        <span class="dc-right">
+          <span class="dc-money num">${money(r.pay)}</span>
+          <span class="dc-hour num">${r.workMs>0 ? dec(r.hourly,2)+" zł/год" : "—"}</span>
+        </span>
       </div>
       <div class="dc-more">
         <div class="stats3">
@@ -626,6 +640,7 @@ function openSheet(kind){
   const title = kind!=="confirm" ? (SHEET_TITLES[kind] || "")
     : c.type==="wipe"    ? "Стерти всі дані?"
     : c.type==="restore" ? "Відновити "+nShifts(c.count)+"?"
+    : c.type==="order"   ? "Видалити замовлення?"
     : "Видалити зміну?";
   document.getElementById("sheetHost").innerHTML =
     `<div class="scrim" data-act="scrim"><div class="sheet">
@@ -701,7 +716,9 @@ function sheetBody(kind){
   if(kind==="confirm"){
     const type = (ui.ctx||{}).type;
     const yes = type==="restore" ? "Відновити" : type==="wipe" ? "Стерти" : "Видалити";
+    const f = type==="order" ? findOrder((ui.ctx||{}).id) : null;
     return `${type==="restore"?`<div class="warn">Поточні дані буде замінено</div>`:""}
+    ${f?`<div class="ordask"><span>${hhmm(f.c.ts)} · ${f.leg.dept}</span><b class="num">${nf(f.c.qty)}</b></div>`:""}
     <div class="confirm">
       <button class="cancel" data-act="closesheet">Скасувати</button>
       <button class="yes" data-act="doconfirm">${yes}</button>
@@ -722,7 +739,6 @@ document.addEventListener("click", ev => {
     case "tab": ui.tab=v; ui.openDay=null; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;
-    case "delorder": delOrder(v); break;
     case "block": toggleBlock(); break;
     case "setdept": switchDept(v); break;
     case "snapshot": { const sh=activeShift(); if(sh){ ui.snap=calc(sh); ui.snap.pay=shiftPay(ui.snap, shiftTiers(sh)); openSheet("now"); } break; }
@@ -758,6 +774,7 @@ document.addEventListener("click", ev => {
       if(c.type==="shift") S.shifts = S.shifts.filter(s=>s.id!==c.id);
       else if(c.type==="wipe") S = DEF();
       else if(c.type==="restore") S = normalize(c.data);
+      else if(c.type==="order") delOrder(c.id);
       ui.ctx=null; ui.openDay=null; save(); applyTheme(); closeSheet(); render();
       if(c.type==="restore") toast("Відновлено "+nShifts(S.shifts.length));
       break;

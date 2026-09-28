@@ -180,7 +180,9 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .dc-left{display:flex;align-items:baseline;gap:10px;min-width:0}
 .dc-id{font:700 22px/1 var(--m);letter-spacing:-.01em}
 .dc-qty{font:600 17px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
+.dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
 .dc-money{font:700 19px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dc-hour{font:600 12.5px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim)}
 .dc-more{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
 .dc-formula{margin-top:12px;text-align:center;font:400 11.5px/1 var(--m);color:var(--dim2)}
 .dc-bar{position:relative;height:10px;margin-top:16px;border-radius:3px;
@@ -302,6 +304,9 @@ input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px;bord
 
 /* власні іконки замість емодзі-символів */
 .gi{width:11px;height:11px;fill:currentColor;vertical-align:-1px;margin-right:7px}
+.ordask{display:flex;justify-content:space-between;align-items:baseline;margin:-4px 0 18px;
+  font:500 14px/1 var(--m);color:var(--dim)}
+.ordask b{font:700 26px/1 var(--m);color:var(--txt)}
 .warn{margin:-4px 0 16px;font:400 13px/1.4 var(--f);color:var(--dim)}
 
 /* зведення під час зміни */
