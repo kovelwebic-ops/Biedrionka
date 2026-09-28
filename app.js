@@ -508,6 +508,9 @@ function viewMonth(){
   const [y,m] = ui.month.split("-").map(Number);
   const M = monthCalc(ui.month);
   const bl = blendRows(ui.month);
+  /* Скільки картонів ще бракує, щоб до кінця місяця закрились усі бленди.
+     Лише для поточного місяця: минулий уже не доробиш. */
+  const short = ui.month===ymOf(new Date()) ? bl.reduce((a,r)=>a + BLEND_QTY - r.done, 0) : 0;
   const marks = [[66.7,"100"],[76.7,"115"],[86.7,"130"]];
 
   return `
@@ -561,6 +564,7 @@ function viewMonth(){
       </div>
       <div class="bar"><span class="${r.closed?"done":""}" style="width:${(r.done/BLEND_QTY*100).toFixed(1)}%"></span></div>
     </div>`).join("")}
+    ${short>0 ? `<div class="bshort"><span>Щоб закрити всі до кінця місяця</span><b class="num">ще ${nf(short)} карт.</b></div>` : ""}
   </div>
 
   <div class="sect">

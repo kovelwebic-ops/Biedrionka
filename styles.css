@@ -211,6 +211,10 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
   padding:15px 2px;border-bottom:1px solid var(--line)}
 .prow .date{font:500 13px/1 var(--m);color:var(--dim)}
 .prow .amt{font:600 16px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--neg)}
+/* Підпис може перейти на другий рядок на вузькому екрані, число — ніколи. */
+.bshort{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+  padding:15px 2px 0;font:500 13px/1.35 var(--f);color:var(--dim)}
+.bshort b{font:700 15px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt)}
 .rowx{width:36px;height:36px;margin:-8px -8px -8px 0;display:flex;align-items:center;
   justify-content:center;font:400 16px/1 var(--f);color:var(--dim2)}
 .rowx:active{color:var(--neg)}
