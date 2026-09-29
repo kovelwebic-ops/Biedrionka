@@ -302,6 +302,10 @@ input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px;bord
 .finhead{display:flex;align-items:flex-end;gap:14px;margin-bottom:18px}
 .finhead .n{font:800 56px/1 var(--m);font-variant-numeric:tabular-nums;letter-spacing:-.04em}
 .finhead .c{padding-bottom:8px;font:500 12px/1.4 var(--m);color:var(--dim)}
+.hint{margin-top:10px;font:400 13px/1.4 var(--m);color:var(--dim)}
+.altbtn{width:100%;min-height:54px;margin-top:10px;border-radius:14px;border:1px solid var(--line);
+  font:600 15px/1 var(--f);color:var(--dim)}
+.altbtn:active{background:var(--sur2)}
 .confirm{display:flex;gap:10px;margin-top:4px}
 .confirm button{flex:1;min-height:60px;border-radius:14px;font:600 16px/1 var(--f)}
 .confirm .cancel{border:1px solid var(--line);color:var(--dim)}

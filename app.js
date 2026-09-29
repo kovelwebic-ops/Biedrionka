@@ -255,12 +255,30 @@ function delOrder(id){
   const f = findOrder(id);
   if(f) f.leg.cartons.splice(f.i, 1);
 }
-function toggleBlock(){
+/* Завершує блок, що триває. Починається блок лише через startBlock(). */
+function endBlock(){
   const sh = activeShift(); if(!sh) return;
   const open = sh.blocks.find(b=>b.end==null);
-  if(open) open.end = now();
-  else sh.blocks.push({id:uid(), start:now(), end:null});
-  save(); render();
+  if(open){ open.end = now(); save(); render(); }
+}
+function lastOrderTs(sh){
+  let t = 0;
+  for(const leg of sh.legs) for(const c of leg.cartons) if(c.ts > t) t = c.ts;
+  return t;
+}
+/* Найраніше, звідки можна почати блок: не раніше початку зміни, кінця
+   попереднього блоку й останнього замовлення — тоді ти ще працював.
+   Це ж і час за замовчуванням: сиділи без роботи з останнього замовлення,
+   поки не сказали йти блокуватись — ці хвилини теж блок. */
+function blockFloor(sh){
+  let t = Math.max(sh.start, lastOrderTs(sh));
+  for(const b of sh.blocks) if(b.end && b.end > t) t = b.end;
+  return Math.min(t, now());
+}
+function startBlock(from){
+  const sh = activeShift(); if(!sh || isBlocked()) return;
+  sh.blocks.push({id:uid(), start:from, end:null});
+  save(); closeSheet(); render();
 }
 const isBlocked = () => { const sh = activeShift(); return !!(sh && sh.blocks.find(b=>b.end==null)); };
 
@@ -645,7 +663,8 @@ function viewSettings(){
 
 /* ============ шторки ============ */
 const SHEET_TITLES = {order:"Замовлення", dept:"Відділ", start:"Початок зміни",
-  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду", now:"Зведення"};
+  finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду", now:"Зведення",
+  block:"Блокування"};
 
 function openSheet(kind){
   ui.sheet = kind; ui.pad = "";
@@ -687,6 +706,13 @@ function sheetBody(kind){
       ${DEPTS.map(d=>`<button class="chip ${cur===d?"on":""}" data-act="setdept" data-v="${d}">
         <div class="id">${d}</div><div class="sub">${normOf(d)}/год</div></button>`).join("")}
     </div>`;
+  }
+  if(kind==="block"){
+    const last = lastOrderTs(sh), from = blockFloor(sh);
+    return `<label class="field"><div class="lab">Блок з</div><input type="time" class="big" id="fA" value="${hhmm(from)}"></label>
+      <div class="hint">${last ? "Останнє замовлення о "+hhmm(last) : "Замовлень ще не було — від початку зміни"}</div>
+      <button class="accbtn sm" data-act="doblock">Почати блок</button>
+      <button class="altbtn" data-act="blocknow">Від зараз · ${hhmm(now())}</button>`;
   }
   if(kind==="start"){
     return `<label class="field"><input type="time" class="big" id="fA" value="${hhmm(sh.start)}"></label>
@@ -752,7 +778,20 @@ document.addEventListener("click", ev => {
     case "tab": ui.tab=v; ui.openDay=null; render(); window.scrollTo(0,0); break;
     case "pickdept": S.settings.lastDept=v; save(); render(); break;
     case "startshift": startShift(S.settings.lastDept); break;
-    case "block": toggleBlock(); break;
+    case "block": if(isBlocked()) endBlock(); else openSheet("block"); break;
+    case "blocknow": startBlock(now()); break;
+    case "doblock": {
+      const sh = activeShift(); if(!sh) break;
+      const floor = blockFloor(sh);
+      let ts = timeStart(now(), document.getElementById("fA").value);
+      if(ts==null){ toast("Некоректний час"); break; }
+      /* Поле показує лише хвилини: те саме «13:40», що й за замовчуванням,
+         не має впиратися в секунди. */
+      if(ts < floor && floor - ts < 60000) ts = floor;
+      if(ts > now()) ts = now();
+      if(ts < floor){ toast("Не раніше "+hhmm(floor)); break; }
+      startBlock(ts); break;
+    }
     case "setdept": switchDept(v); break;
     case "snapshot": { const sh=activeShift(); if(sh){ ui.snap=calc(sh); ui.snap.pay=shiftPay(ui.snap, shiftTiers(sh)); openSheet("now"); } break; }
     case "sheet": openSheet(v); break;
