@@ -19,7 +19,7 @@ const DEF = () => ({
   v:2,
   settings:{rate:"n", lastDept:"P01", theme:"dark"},
   rates:JSON.parse(JSON.stringify(BASE_RATES)),
-  shifts:[], blends:[], penalties:[]
+  shifts:[], blends:[], penalties:[], reports:[]
 });
 
 let S = load();
@@ -46,6 +46,12 @@ function okShift(s){
     && Array.isArray(s.blocks) && Array.isArray(s.legs) && s.legs.length > 0
     && s.legs.every(l => !!l && typeof l.dept === "string" && isNum(l.start)
         && Array.isArray(l.cartons) && l.cartons.every(c => !!c && isNum(c.qty)));
+}
+function okReport(r){
+  return !!r && /^\d{4}-\d{2}$/.test(r.ym) && /^\d{4}-\d{2}-\d{2}$/.test(r.through)
+    && r.through.slice(0,7)===r.ym
+    && !!r.depts && typeof r.depts === "object" && !Array.isArray(r.depts)
+    && Object.values(r.depts).every(d => !!d && isNum(d.qty) && isNum(d.h) && d.qty>=0 && d.h>=0);
 }
 
 /* Єдині ворота для чужих даних — і з localStorage, і з відновленої копії.
@@ -75,6 +81,7 @@ function normalize(d){
     .map(b => ({...b, id: b.id || uid()}));
   base.penalties = arr("penalties").filter(p => p && typeof p.date === "string" && isNum(p.amount))
     .map(p => ({...p, id: p.id || uid()}));
+  base.reports = arr("reports").filter(okReport);
   return base;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -106,6 +113,20 @@ function plural(n, one, few, many){
 const nShifts = n => n+" "+plural(n,"зміну","зміни","змін");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const dLabel = ds => ds.slice(8,10)+"."+ds.slice(5,7);
+function lastDay(ym){
+  const [y,m] = ym.split("-").map(Number);
+  return ym+"-"+pad2(new Date(y,m,0).getDate());
+}
+/* Числа з видайності: кома або крапка, пробіли не заважають. Порожнє — NaN. */
+function parseNum(s){
+  const t = String(s).replace(/\s/g,"").replace(",",".");
+  return t ? Number(t) : NaN;
+}
+/* Час приймаємо і як у видайності (78,28), і як у застосунку (78:17). */
+function parseHours(s){
+  const m = /^\s*(\d+):([0-5]?\d)\s*$/.exec(s);
+  return m ? +m[1] + m[2]/60 : parseNum(s);
+}
 
 function toast(msg){
   const old = document.querySelector(".toast"); if(old) old.remove();
@@ -157,20 +178,36 @@ function calc(sh){
   return {qty, rows, workMs, blockMs};
 }
 
+/* Видайність — істина за свій період: суми по відділах від 1 числа до through
+   включно. Зміни цього періоду місяць не рахує, а ті, що пізніше, йдуть поверх.
+   Самі зміни не змінюються, тож без видайності все повертається як було. */
+const reportOf = ym => S.reports.find(r => r.ym===ym) || null;
+const coveredBy = (rep, s) => !!rep && s.date <= rep.through;
+
 /* Місяць — єдине місце, де рахуються гроші.
    У кожного відділу свій відсоток, свій поріг і своя ставка. */
 function monthCalc(ym){
   const list = S.shifts.filter(s=>s.end && s.date.slice(0,7)===ym);
+  const rep = reportOf(ym);
   const map = new Map();
+  const add = (dept, q, nrm, ms) => {
+    let b = map.get(dept);
+    if(!b){ b = {dept, qty:0, norm:0, workMs:0}; map.set(dept, b); }
+    b.qty+=q; b.norm+=nrm; b.workMs+=ms;
+  };
   let qty=0, workMs=0, blockMs=0;
+  if(rep) for(const [dept,d] of Object.entries(rep.depts)){
+    const ms = d.h*3600000;
+    add(dept, d.qty, d.h*normOf(dept), ms);
+    qty+=d.qty; workMs+=ms;
+  }
   for(const s of list){
     const c = calc(s);
-    qty+=c.qty; workMs+=c.workMs; blockMs+=c.blockMs;
-    for(const r of c.rows){
-      let b = map.get(r.dept);
-      if(!b){ b = {dept:r.dept, qty:0, norm:0, workMs:0}; map.set(r.dept, b); }
-      b.qty+=r.qty; b.norm+=r.norm; b.workMs+=r.workMs;
-    }
+    /* Блокування у видайності немає, тож воно завжди береться зі змін. */
+    blockMs+=c.blockMs;
+    if(coveredBy(rep, s)) continue;
+    qty+=c.qty; workMs+=c.workMs;
+    for(const r of c.rows) add(r.dept, r.qty, r.norm, r.workMs);
   }
   const rows = [...map.values()].sort((a,b)=>a.dept.localeCompare(b.dept));
   let pay = 0;
@@ -218,8 +255,10 @@ function blendRows(ym){
   if(!mine.length) return [];
   /* У бленд іде вся сума картонів місяця, з 1 числа — дата бленду на це
      не впливає. Кілька блендів беруть з цієї суми по черзі, по 3000. */
-  let left = S.shifts.filter(s => s.date.slice(0,7)===ym)
-                     .reduce((a,s) => a + calc(s).qty, 0);
+  const rep = reportOf(ym);
+  let left = rep ? Object.values(rep.depts).reduce((a,d) => a + d.qty, 0) : 0;
+  for(const s of S.shifts)
+    if(s.date.slice(0,7)===ym && !coveredBy(rep, s)) left += calc(s).qty;
   return mine.map(bl => {
     const done = Math.min(BLEND_QTY, left);
     left -= done;
@@ -529,6 +568,9 @@ function viewMonth(){
   if(!ui.month) ui.month = ymOf(new Date());
   const [y,m] = ui.month.split("-").map(Number);
   const M = monthCalc(ui.month);
+  const rep = reportOf(ui.month);
+  const repQty = rep ? Object.values(rep.depts).reduce((a,d)=>a+d.qty,0) : 0;
+  const repH = rep ? Object.values(rep.depts).reduce((a,d)=>a+d.h,0) : 0;
   const bl = blendRows(ui.month);
   /* Скільки картонів ще бракує, щоб до кінця місяця закрились усі бленди.
      Лише для поточного місяця: минулий уже не доробиш. */
@@ -572,6 +614,14 @@ function viewMonth(){
         <div class="dc-formula">${r.formula}</div>
       </div>
     </div>`).join("") : `<div class="blank">За цей місяць змін немає</div>`}
+  </div>
+
+  <div class="sect">
+    <div class="sect-head"><span>Видайність</span><button data-act="sheet" data-v="report">${rep?"Змінити":"Внести"}</button></div>
+    ${rep ? `<div class="prow">
+      <span class="date">до ${dLabel(rep.through)} · ${nf(repQty)} карт. · ${dur(repH*3600000)}</span>
+      <button class="rowx" data-act="ask" data-v="report:${rep.ym}" aria-label="Видалити">✕</button>
+    </div>` : ""}
   </div>
 
   <div class="sect">
@@ -664,7 +714,7 @@ function viewSettings(){
 /* ============ шторки ============ */
 const SHEET_TITLES = {order:"Замовлення", dept:"Відділ", start:"Початок зміни",
   finish:"Завершити зміну", blend:"Бленд", pen:"Карта бленду", now:"Зведення",
-  block:"Блокування"};
+  block:"Блокування", report:"Видайність"};
 
 function openSheet(kind){
   ui.sheet = kind; ui.pad = "";
@@ -673,6 +723,7 @@ function openSheet(kind){
     : c.type==="wipe"    ? "Стерти всі дані?"
     : c.type==="restore" ? "Відновити "+nShifts(c.count)+"?"
     : c.type==="order"   ? "Видалити замовлення?"
+    : c.type==="report"  ? "Видалити видайність?"
     : "Видалити зміну?";
   document.getElementById("sheetHost").innerHTML =
     `<div class="scrim" data-act="scrim"><div class="sheet">
@@ -682,6 +733,7 @@ function openSheet(kind){
       </div>
       ${sheetBody(kind)}
     </div></div>`;
+  if(kind==="report") DEPTS.forEach(paintRepNorm);
 }
 function closeSheet(){ ui.sheet=null; ui.pad=""; ui.snap=null; document.getElementById("sheetHost").innerHTML=""; }
 
@@ -706,6 +758,25 @@ function sheetBody(kind){
       ${DEPTS.map(d=>`<button class="chip ${cur===d?"on":""}" data-act="setdept" data-v="${d}">
         <div class="id">${d}</div><div class="sub">${normOf(d)}/год</div></button>`).join("")}
     </div>`;
+  }
+  if(kind==="report"){
+    const ym = ui.month, rep = reportOf(ym), today = dkey(now()), last = lastDay(ym);
+    const max = last<today ? last : today;
+    /* Видайність приходить за минулі дні: сьогоднішня зміна ще триває, і дата
+       «сьогодні» непомітно б її з'їла. Тому за замовчуванням — учора. */
+    const yesterday = dkey(now()-86400000);
+    const def = rep ? rep.through : last<today ? last : yesterday.slice(0,7)===ym ? yesterday : today;
+    const txt = n => String(n).replace(".",",");
+    return `<label class="field"><div class="lab">Дані до (включно)</div>
+        <input type="date" id="fDate" value="${def}" min="${ym}-01" max="${max}"></label>
+      <div class="rhead"><span></span><span>Картони</span><span>Час</span><span>Норма</span></div>
+      ${DEPTS.map(d=>{ const v = rep && rep.depts[d]; return `<div class="rrow">
+        <span class="rt">${d}</span>
+        <input inputmode="decimal" data-rep="${d}" data-k="q" value="${v?txt(v.qty):""}" aria-label="${d} картони">
+        <input inputmode="decimal" data-rep="${d}" data-k="h" value="${v?dec(v.h,2):""}" aria-label="${d} час">
+        <span class="rfix num" id="repn${d}">—</span>
+      </div>`; }).join("")}
+      <button class="accbtn sm" data-act="doreport">Зберегти</button>`;
   }
   if(kind==="block"){
     const last = lastOrderTs(sh), from = blockFloor(sh);
@@ -780,6 +851,7 @@ document.addEventListener("click", ev => {
     case "startshift": startShift(S.settings.lastDept); break;
     case "block": if(isBlocked()) endBlock(); else openSheet("block"); break;
     case "blocknow": startBlock(now()); break;
+    case "doreport": saveReport(); break;
     case "doblock": {
       const sh = activeShift(); if(!sh) break;
       const floor = blockFloor(sh);
@@ -827,6 +899,7 @@ document.addEventListener("click", ev => {
       else if(c.type==="wipe") S = DEF();
       else if(c.type==="restore") S = normalize(c.data);
       else if(c.type==="order") delOrder(c.id);
+      else if(c.type==="report") S.reports = S.reports.filter(r=>r.ym!==c.id);
       ui.ctx=null; ui.openDay=null; save(); applyTheme(); closeSheet(); render();
       if(c.type==="restore") toast("Відновлено "+nShifts(S.shifts.length));
       break;
@@ -854,6 +927,36 @@ document.addEventListener("click", ev => {
     case "pickfile": pickBackupFile(); break;
   }
 });
+
+/* Норма у формі видайності рахується сама — її можна звірити з колонкою
+   NORMA у звіті й одразу побачити помилку в наборі. */
+document.addEventListener("input", ev => {
+  const el = ev.target.closest("[data-rep]");
+  if(el) paintRepNorm(el.dataset.rep);
+});
+const repField = (dep, k) => document.querySelector(`[data-rep="${dep}"][data-k="${k}"]`);
+function paintRepNorm(dep){
+  const q = parseNum(repField(dep,"q").value), h = parseHours(repField(dep,"h").value);
+  const out = document.getElementById("repn"+dep), ok = q>=0 && h>0;
+  out.textContent = ok ? dec(q/h,2) : "—";
+  out.style.color = ok ? tone(q/h/normOf(dep)*100) : "";
+}
+function saveReport(){
+  const ym = ui.month, through = document.getElementById("fDate").value;
+  if(through.slice(0,7)!==ym || through>dkey(now())){ toast("Дата — у цьому місяці, не пізніше сьогодні"); return; }
+  const depts = {};
+  for(const dep of DEPTS){
+    const qs = repField(dep,"q").value.trim(), hs = repField(dep,"h").value.trim();
+    if(!qs && !hs) continue;
+    const qty = parseNum(qs), h = parseHours(hs);
+    if(!(qty>=0) || !(h>=0) || (qty>0 && !(h>0))){ toast(dep+": потрібні картони й час"); return; }
+    if(qty>0 || h>0) depts[dep] = {qty, h};
+  }
+  if(!Object.keys(depts).length){ toast("Вкажи хоча б один відділ"); return; }
+  S.reports = S.reports.filter(r=>r.ym!==ym);
+  S.reports.push({ym, through, depts});
+  save(); closeSheet(); render();
+}
 
 document.addEventListener("change", ev => {
   const el = ev.target.closest("[data-rate]");

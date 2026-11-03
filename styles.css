@@ -244,6 +244,8 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
 .rcard{background:var(--sur);border:1px solid var(--line);border-radius:16px;padding:16px}
 .rcard .id{font:700 20px/1 var(--m)}
 .rhead,.rrow{display:grid;grid-template-columns:38px 1fr 1fr 1fr;gap:6px;align-items:center}
+/* У формі видайності картони довші за час і норму: 16612,53 */
+.sheet .rhead,.sheet .rrow{grid-template-columns:30px 1.4fr 1fr 1fr}
 .rhead{margin-top:14px;padding:0 2px}
 .rhead span{font:600 10px/1 var(--m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim2)}
 .rhead span+span{text-align:center}
