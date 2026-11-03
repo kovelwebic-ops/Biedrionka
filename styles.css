@@ -179,7 +179,7 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
   gap:10px;text-align:left}
 .dc-left{display:flex;align-items:baseline;gap:10px;min-width:0}
 .dc-id{font:700 22px/1 var(--m);letter-spacing:-.01em}
-.dc-qty{font:600 17px/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
+.dc-qty{font:600 clamp(13px,4.1vw,17px)/1 var(--m);font-variant-numeric:tabular-nums;color:var(--dim)}
 .dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
 .dc-money{font:700 19px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap}
 .dc-hour{font:600 12.5px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim)}
@@ -227,6 +227,11 @@ table.tbl td:first-child{text-align:left;color:var(--dim)}
   letter-spacing:-.03em;white-space:nowrap}
 .payout .sub{margin-top:12px;font:500 11px/1 var(--m);letter-spacing:.1em;
   text-transform:uppercase;color:var(--dim2)}
+.recs{display:flex;flex-direction:column;gap:15px;padding:16px 2px 0}
+.recrow{display:grid;grid-template-columns:1fr auto 58px;gap:10px;align-items:baseline}
+.recrow span{font:500 13px/1.2 var(--f);color:var(--dim)}
+.recrow b{font:700 15px/1 var(--m);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.recrow i{font:400 11.5px/1 var(--m);font-style:normal;color:var(--dim2);text-align:right}
 .pbreak{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:11px}
 .pbreak div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;

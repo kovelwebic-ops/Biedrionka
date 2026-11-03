@@ -233,9 +233,13 @@ function monthCalc(ym){
 
 /* Планка кожного відділу зміни — та, що зараз стоїть у статистиці місяця
    (там лише завершені зміни). Власні час і норма зміни ролі не грають. */
+function monthTiers(ym){
+  const t = {};
+  for(const r of monthCalc(ym).rows) t[r.dept] = r.ti;
+  return t;
+}
 function shiftTiers(sh){
-  const all = {};
-  for(const r of monthCalc(sh.date.slice(0,7)).rows) all[r.dept] = r.ti;
+  const all = monthTiers(sh.date.slice(0,7));
   const t = {};
   for(const leg of sh.legs) t[leg.dept] = all[leg.dept] || 0;
   return t;
@@ -243,6 +247,33 @@ function shiftTiers(sh){
 /* Зароблено за зміну: картони відділу × ставка його планки. */
 function shiftPay(c, tiers){
   return c.rows.reduce((a,r) => a + r.qty * rateOf(r.dept)[tiers[r.dept] || 0], 0);
+}
+
+/* ============ рекорди ============ */
+/* За весь час, лише завершені зміни. Видайність дає суми за місяць, а не по
+   змінах, тому на рекорди не впливає. Гроші — ті самі, що в історії зміни
+   (зафіксована планка); у старих змін її немає, тож для них планка їхнього місяця.
+   Рівний результат не перебиває рекорд: дата лишається за тим, хто поставив першим. */
+function records(){
+  const beats = (cur, v, date) => v>0 && (!cur || v>cur.v || (v===cur.v && date<cur.date));
+  const orders = {}, oldTiers = new Map();
+  let qty = null, pay = null;
+  for(const s of S.shifts){
+    if(!s.end) continue;
+    for(const leg of s.legs) for(const o of leg.cartons)
+      if(beats(orders[leg.dept], o.qty, s.date)) orders[leg.dept] = {v:o.qty, date:s.date};
+    const c = calc(s);
+    if(beats(qty, c.qty, s.date)) qty = {v:c.qty, date:s.date};
+    let t = s.tiers;
+    if(!t){
+      const ym = s.date.slice(0,7);
+      if(!oldTiers.has(ym)) oldTiers.set(ym, monthTiers(ym));
+      t = oldTiers.get(ym);
+    }
+    const p = shiftPay(c, t);
+    if(beats(pay, p, s.date)) pay = {v:p, date:s.date};
+  }
+  return {orders, qty, pay};
 }
 
 /* ============ бленди ============ */
@@ -659,6 +690,23 @@ function viewMonth(){
       <div><span>Години ${dur(M.workMs)} × ${dec(HOUR_BONUS,2)}</span><b class="num">+${money(M.bonus)}</b></div>
       ${M.penSum ? `<div><span>Карти бленду</span><b class="num">${money(-M.penSum)}</b></div>` : ""}
     </div>` : ""}
+  </div>
+
+  ${recordsHtml()}`;
+}
+function recordsHtml(){
+  const R = records(), row = (label, val, date) => `<div class="recrow">
+    <span>${label}</span><b class="num">${val}</b><i class="num">${dLabel(date)}.${date.slice(2,4)}</i>
+  </div>`;
+  const orders = Object.keys(R.orders).sort();
+  if(!orders.length && !R.qty && !R.pay) return "";
+  return `<div class="sect">
+    <div class="sect-head"><span>Рекорди</span></div>
+    <div class="recs">
+      ${orders.map(d => row("Замовлення "+d, nf(R.orders[d].v), R.orders[d].date)).join("")}
+      ${R.qty ? row("Картони за зміну", nf(R.qty.v), R.qty.date) : ""}
+      ${R.pay ? row("Гроші за зміну", money(R.pay.v), R.pay.date) : ""}
+    </div>
   </div>`;
 }
 function shiftMonth(ym,delta){
